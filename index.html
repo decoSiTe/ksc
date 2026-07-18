@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Tag Request Form</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/default.css">
+
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="clay-bg-blobs" aria-hidden="true">
+    <div class="clay-blob one"></div>
+    <div class="clay-blob two"></div>
+    <div class="clay-blob three"></div>
+    <div class="clay-blob four"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="reminderModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-header-label">Important Reminder</div>
+        <h2>Before You Submit</h2>
+      </div>
+      <div class="modal-body">
+        <div class="modal-icon">⚠️</div>
+        <strong>REMINDER</strong>
+        <p>Please be reminded that each branch is limited to submitting 2 requests per week.
+Before submitting your request, kindly ensure that you have carefully reviewed and confirmed the required price tags.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn" onclick="closeReminder()">I Understand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Banner -->
+  <div class="banner">
+    <div class="banner-pattern"></div>
+    <div class="banner-content">
+      <div class="banner-label">Internal Operations</div>
+      <div class="banner-title">Price Tag <span>Request Form</span></div>
+    </div>
+  </div>
+
+  <!-- Holidays Strip -->
+  <div class="holidays-strip">
+    <div class="holidays-strip-inner">
+      <div class="holidays-label-col">
+        <span>Holidays & Occasions!</span>
+      </div>
+      <div class="holidays-list" id="holidaysList">
+        <div class="holidays-loading-strip">
+          <div class="h-skel"></div><div class="h-skel"></div><div class="h-skel"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Page -->
+  <div class="page">
+    <div id="formWrap">
+
+      <!-- Form Card -->
+      <div class="card">
+        <div class="required-note"><span>*</span> Indicates required field</div>
+        <div class="alert alert-error" id="errorAlert"></div>
+
+        <div class="form-group">
+          <label>Email Verification <span class="req">*</span></label>
+          <div class="email-auth-box">
+            <div class="email-choice-grid">
+              <div class="email-choice" id="googleChoice" onclick="selectEmailMethod('google')" role="button" tabindex="0">
+                <div class="email-choice-head"><span class="email-radio-dot"></span> Login with Google</div>
+                <small>Use this option for a verified Google account, such as @gmail.com.</small>
+              </div>
+              <div class="email-choice" id="flexwayChoice" onclick="selectEmailMethod('flexway')" role="button" tabindex="0">
+                <div class="email-choice-head"><span class="email-radio-dot"></span> Use Flexway Email</div>
+                <small>Type a valid company email, ending with "@flexway.com" </small>
+              </div>
+            </div>
+
+            <div class="email-auth-panel" id="googlePanel">
+              <div id="g_id_onload"
+                   data-client_id="1053548294778-ik9od282c0mi2f7flc4evj7b2l6ll04m.apps.googleusercontent.com"
+                   data-callback="handleGoogleCredentialResponse"
+                   data-auto_prompt="false">
+              </div>
+              <div class="google-auth-row">
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-shape="pill"
+                     data-logo_alignment="left">
+                </div>
+                <span class="verified-pill" id="googleVerifiedPill">✓ Google account verified</span>
+              </div>
+              <div class="email-help-text">The signed-in Google email will be used for this request.</div>
+            </div>
+
+            <div class="email-auth-panel" id="flexwayPanel">
+              <input type="email" id="flexwayEmailField" placeholder="name@flexway.com" autocomplete="email">
+              <div class="email-help-text">Only emails ending with <strong>@flexway.com</strong> are accepted here.</div>
+            </div>
+
+            <input type="hidden" id="emailField">
+            <div class="email-status neutral" id="emailStatus">Choose Google login or enter a Flexway email before submitting.</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dateField">Date Requested <span class="req">*</span></label>
+            <input type="date" id="dateField">
+          </div>
+          <div class="form-group">
+            <label for="branchField">Branch <span class="req">*</span></label>
+            <div class="select-wrap">
+              <select id="branchField" disabled>
+                <option value="">Fetching Branch List…</option>
+              </select>
+            </div>
+            <div class="branch-load-status" id="branchLoadStatus">Fetching Branch List…</div>
+          </div>
+        </div>
+
+        <hr class="section-div">
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="notesField">Notes / Special Instructions</label>
+          <textarea id="notesField" placeholder="Any urgency, special context, or additional instructions…"></textarea>
+        </div>
+      </div>
+
+      <!-- Photos Slideshow (no header, no caption) -->
+      <div class="photos-card">
+        <div class="slideshow" id="slideshow">
+          <div class="slide active">
+            <div class="slide-placeholder">
+              <span>🖼️</span>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Card -->
+      <div class="card">
+        <div class="card-title">Select Price Tags</div>
+        <div class="card-subtitle">Tick all items you need price tags for. Items are grouped by category.</div>
+
+        <div class="product-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input class="product-search" id="productSearch" type="text" placeholder="Search products…">
+        </div>
+
+        <div id="loadingState">
+          <div class="skeleton-list">
+            <div class="skeleton-item"></div><div class="skeleton-item"></div>
+            <div class="skeleton-item"></div><div class="skeleton-item"></div>
+            <div class="skeleton-item"></div><div class="skeleton-item"></div>
+          </div>
+        </div>
+        <div id="productGroups" style="display:none;"></div>
+      </div>
+
+      <!-- Submit Card -->
+      <div class="card" style="padding:20px 28px;">
+        <button class="btn-submit" id="submitBtn" onclick="handleSubmit()">Submit Request</button>
+      </div>
+
+    </div>
+
+    <div class="card success-screen" id="successScreen">
+      <div style="font-size:52px;margin-bottom:16px;">✅</div>
+      <h2>Request Submitted!</h2>
+      <p>Your price tag request has been received and is now queued for processing.<br>A confirmation has been sent to your email.</p>
+      <div class="status-pill">● Pending</div><br>
+      <button class="btn-new" onclick="resetForm()">Submit Another Request</button>
+    </div>
+  </div>
+
+<!-- ══ FOOTER ══ -->
+  <footer class="site-footer">
+ 
+    <!-- Social icons — left aligned -->
+    <div class="footer-social">
+ 
+      <!-- Facebook -->
+      <a class="social-btn facebook"
+         href="https://www.facebook.com/katrinasweetsuae"
+         target="_blank" rel="noopener noreferrer"
+         title="Follow us on Facebook">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.791-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.971h-1.513c-1.491 0-1.956.93-1.956 1.886v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+        </svg>
+      </a>
+ 
+      <!-- Instagram -->
+      <a class="social-btn instagram"
+         href="https://www.instagram.com/katrinasweetsuae"
+         target="_blank" rel="noopener noreferrer"
+         title="Follow us on Instagram">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+        </svg>
+      </a>
+ 
+      <!-- TikTok -->
+      <a class="social-btn tiktok"
+         href="https://www.tiktok.com/@katrina_dubai"
+         target="_blank" rel="noopener noreferrer"
+         title="Follow us on TikTok">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.53V6.77a4.85 4.85 0 01-1.01-.08z"/>
+        </svg>
+      </a>
+ 
+    </div>
+    <!-- Copyright — right aligned -->
+    <div class="footer-copy">&copy; 2026 KS Coffee & Cakes. All rights reserved.</div>
+ 
+  </footer>
+
+  <script src="scripts/animation.js"></script>
+</body>
+</html>
