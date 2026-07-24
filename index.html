@@ -450,64 +450,104 @@
       height:0;
     }
 
-    .logs-stack .glass-reminder.title{
+    .stack-label{
+      color:#fff;
+      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size:13px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      padding:2px 8px 4px;
+      opacity:.82;
+      text-shadow:0 1px 3px rgba(0,0,0,.6);
+    }
+
+    .logs-stack .stack-label{
       position:sticky;
       top:0;
       z-index:1;
+      background:linear-gradient(180deg, rgba(9,0,20,.75) 60%, transparent);
+      padding-top:6px;
+      padding-bottom:8px;
+      margin-bottom:-4px;
     }
 
-    .glass-reminder{
+    .ios-notif{
       position:relative;
-      overflow:hidden;
-      border-radius:999px;
-      padding:12px 18px;
-      min-height:44px;
-      color:#061022;
+      display:flex;
+      align-items:flex-start;
+      gap:11px;
+      padding:12px 13px;
+      border-radius:20px;
       background:
-        linear-gradient(135deg, rgba(255,255,255,.82), rgba(210,226,255,.56)),
-        radial-gradient(circle at 20% 12%, rgba(255,255,255,.95), transparent 40%);
-      border:1px solid rgba(255,255,255,.72);
+        linear-gradient(135deg, rgba(90,90,100,.42), rgba(40,40,50,.38));
+      border:1px solid rgba(255,255,255,.14);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.92),
-        inset 0 -12px 24px rgba(20,30,60,.16),
-        0 12px 30px rgba(0,0,0,.24),
-        0 0 26px rgba(0,255,255,.16);
-      backdrop-filter:blur(18px) saturate(1.35);
-      -webkit-backdrop-filter:blur(18px) saturate(1.35);
-      font-family:Arial, sans-serif;
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.2px;
-      text-transform:none;
-      text-align:center;
+        inset 0 1px 0 rgba(255,255,255,.16),
+        0 10px 26px rgba(0,0,0,.38),
+        0 0 22px rgba(0,255,255,.06);
+      backdrop-filter:blur(26px) saturate(1.6);
+      -webkit-backdrop-filter:blur(26px) saturate(1.6);
+      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      text-align:left;
+      color:#fff;
     }
 
-    .glass-reminder::before{
-      content:"";
-      position:absolute;
-      inset:2px 12px auto 12px;
-      height:38%;
-      border-radius:999px;
-      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.08));
-      opacity:.72;
-      pointer-events:none;
+    .ios-notif-icon{
+      flex:0 0 auto;
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      background:linear-gradient(135deg, var(--magenta), var(--cyan));
+      box-shadow:0 2px 8px rgba(0,0,0,.35);
     }
 
-    .glass-reminder.title{
-      font-size:20px;
-      font-weight:500;
-      padding:9px 18px;
-      color:#0b1020;
+    .ios-notif-body{
+      flex:1;
+      min-width:0;
     }
 
-    .glass-reminder .small{
-      display:block;
-      margin-top:3px;
-      font-size:10px;
+    .ios-notif-head{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .ios-notif-title{
       font-weight:700;
-      color:rgba(6,16,34,.72);
-      text-transform:uppercase;
-      letter-spacing:.8px;
+      font-size:14px;
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-transform:none;
+      letter-spacing:normal;
+    }
+
+    .ios-notif-time{
+      flex:0 0 auto;
+      font-size:11px;
+      font-weight:500;
+      color:rgba(255,255,255,.55);
+    }
+
+    .ios-notif-sub{
+      margin-top:2px;
+      font-size:13px;
+      font-weight:400;
+      color:rgba(235,235,245,.82);
+      line-height:1.35;
+      text-transform:none;
+      letter-spacing:normal;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
     }
 
     .hidden{display:none!important;}
@@ -556,7 +596,7 @@
         width:auto;
         max-height:34vh;
       }
-      .glass-reminder.title{font-size:16px;}
+      .stack-label{font-size:12px;}
     }
   </style>
   <link rel="icon" type="image/png" href="clock.png">
@@ -1617,6 +1657,18 @@
     return entries;
   }
 
+  function iconForAction(action) {
+    const icons = {
+      "Arrived": "📍",
+      "Break Start": "☕",
+      "Short Break Start": "⏱️",
+      "Break End": "🔄",
+      "Short Break End": "▶️",
+      "Departure": "🚪"
+    };
+    return icons[action] || "🕒";
+  }
+
   function updateLogsStack() {
     const stack = document.getElementById("logsStack");
     if (!stack) return;
@@ -1631,11 +1683,17 @@
       return;
     }
 
-    stack.innerHTML = '<div class="glass-reminder title">Logs History</div>' +
+    stack.innerHTML = '<div class="stack-label">Logs History</div>' +
       top.map(function(item) {
-        return '<div class="glass-reminder">' +
-          escapeHtml(item.name) +
-          '<span class="small">' + escapeHtml(item.action) + (item.time ? (" · " + escapeHtml(item.time)) : "") + '</span>' +
+        return '<div class="ios-notif">' +
+          '<div class="ios-notif-icon">' + iconForAction(item.action) + '</div>' +
+          '<div class="ios-notif-body">' +
+            '<div class="ios-notif-head">' +
+              '<span class="ios-notif-title">' + escapeHtml(item.name) + '</span>' +
+              (item.time ? '<span class="ios-notif-time">' + escapeHtml(item.time) + '</span>' : '') +
+            '</div>' +
+            '<div class="ios-notif-sub">' + escapeHtml(item.action) + '</div>' +
+          '</div>' +
         '</div>';
       }).join("");
     stack.classList.remove("hidden");
@@ -1663,13 +1721,18 @@
       return;
     }
 
-    stack.innerHTML = '<div class="glass-reminder title">On Break</div>' +
+    stack.innerHTML = '<div class="stack-label">On Break</div>' +
       reminders.slice(0, 8).map(function(item) {
         const statusLabel = item.action === "Short Break End" ? "On Short Break" : "On Break";
-        const startNote = item.startTime ? (" since " + escapeHtml(item.startTime)) : "";
-        return '<div class="glass-reminder">' +
-          escapeHtml(item.emp.name || item.emp.code || "Employee") +
-          '<span class="small">' + statusLabel + startNote + '</span>' +
+        return '<div class="ios-notif">' +
+          '<div class="ios-notif-icon">' + iconForAction(item.action) + '</div>' +
+          '<div class="ios-notif-body">' +
+            '<div class="ios-notif-head">' +
+              '<span class="ios-notif-title">' + escapeHtml(item.emp.name || item.emp.code || "Employee") + '</span>' +
+              (item.startTime ? '<span class="ios-notif-time">' + escapeHtml(item.startTime) + '</span>' : '') +
+            '</div>' +
+            '<div class="ios-notif-sub">' + statusLabel + '</div>' +
+          '</div>' +
         '</div>';
       }).join("");
     stack.classList.remove("hidden");
