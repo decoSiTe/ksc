@@ -425,6 +425,20 @@
       pointer-events:none;
     }
 
+    .logs-stack{
+      position:fixed;
+      right:28px;
+      top:92px;
+      z-index:5;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      width:260px;
+      pointer-events:none;
+      max-height:80vh;
+      overflow:hidden;
+    }
+
     .glass-reminder{
       position:relative;
       overflow:hidden;
@@ -517,6 +531,14 @@
         bottom:18px;
         width:auto;
       }
+      .logs-stack{
+        left:14px;
+        right:14px;
+        top:92px;
+        bottom:auto;
+        width:auto;
+        max-height:34vh;
+      }
       .glass-reminder.title{font-size:16px;}
     }
   </style>
@@ -526,6 +548,7 @@
 <div class="vapor-bg"><div class="sun"></div><div class="grid-floor"></div></div>
 <div class="scanlines"></div>
 <div class="reminder-stack hidden" id="reminderStack"></div>
+<div class="logs-stack hidden" id="logsStack"></div>
 <div class="wrap">
   <div class="header"><h1>KS Internal DTR Kiosk</h1><p>Daily Time Record System</p></div>
   <div class="clock" id="clk">--:--:--</div>
@@ -1536,7 +1559,74 @@
     return "";
   }
 
+  function fieldMinutesForSort(rec, minutes) {
+    if (minutes === null) return -1;
+    // A previous-night record's early-morning time (e.g. Short Break End 05:44)
+    // happened chronologically after that shift's evening start, so push it
+    // later than plain same-day morning times when sorting the log feed.
+    if (rec && rec.previousNight && minutes < (12 * 60)) return minutes + (24 * 60);
+    return minutes;
+  }
+
+  function collectRecordLogEntries(recordsMap) {
+    const entries = [];
+    Object.keys(recordsMap || {}).forEach(function(codeKey) {
+      const rec = recordsMap[codeKey];
+      if (!rec) return;
+
+      const emp = employees.find(function(e) { return String(e.code).toUpperCase() === codeKey; });
+      const name = (emp && emp.name) || rec.employeeName || codeKey;
+
+      const fields = [
+        ["arrival", "Arrived"],
+        ["breakStart", "Break Start"],
+        ["shortBreakStart", "Short Break Start"],
+        ["breakEnd", "Break End"],
+        ["shortBreakEnd", "Short Break End"],
+        ["departure", "Departure"]
+      ];
+
+      fields.forEach(function(f) {
+        const value = rec[f[0]];
+        if (!hasValue(value)) return;
+        entries.push({
+          name: name,
+          action: f[1],
+          time: value,
+          sortKey: fieldMinutesForSort(rec, timeTextToMinutes(value))
+        });
+      });
+    });
+    return entries;
+  }
+
+  function updateLogsStack() {
+    const stack = document.getElementById("logsStack");
+    if (!stack) return;
+
+    const entries = collectRecordLogEntries(todayRecords).concat(collectRecordLogEntries(previousRecords));
+    entries.sort(function(a, b) { return (b.sortKey ?? -1) - (a.sortKey ?? -1); });
+
+    const top = entries.slice(0, 10);
+    if (!top.length) {
+      stack.classList.add("hidden");
+      stack.innerHTML = "";
+      return;
+    }
+
+    stack.innerHTML = '<div class="glass-reminder title">Logs History</div>' +
+      top.map(function(item) {
+        return '<div class="glass-reminder">' +
+          escapeHtml(item.name) +
+          '<span class="small">' + escapeHtml(item.action) + (item.time ? (" · " + escapeHtml(item.time)) : "") + '</span>' +
+        '</div>';
+      }).join("");
+    stack.classList.remove("hidden");
+  }
+
   function updateReminderStack() {
+    updateLogsStack();
+
     const stack = document.getElementById("reminderStack");
     if (!stack) return;
 
