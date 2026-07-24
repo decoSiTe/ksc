@@ -434,9 +434,26 @@
       flex-direction:column;
       gap:12px;
       width:260px;
-      pointer-events:none;
+      pointer-events:auto;
       max-height:80vh;
-      overflow:hidden;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+      overscroll-behavior:contain;
+    }
+
+    .logs-stack::-webkit-scrollbar{
+      display:none;
+      width:0;
+      height:0;
+    }
+
+    .logs-stack .glass-reminder.title{
+      position:sticky;
+      top:0;
+      z-index:1;
     }
 
     .glass-reminder{
@@ -1607,7 +1624,7 @@
     const entries = collectRecordLogEntries(todayRecords).concat(collectRecordLogEntries(previousRecords));
     entries.sort(function(a, b) { return (b.sortKey ?? -1) - (a.sortKey ?? -1); });
 
-    const top = entries.slice(0, 10);
+    const top = entries.slice(0, 50);
     if (!top.length) {
       stack.classList.add("hidden");
       stack.innerHTML = "";
