@@ -416,14 +416,13 @@
 
     .reminder-stack{
       position:fixed;
-      left:50%;
+      left:24px;
       top:88px;
-      transform:translateX(-50%);
       z-index:5;
       display:flex;
       flex-direction:column;
       gap:8px;
-      width:320px;
+      width:280px;
       max-height:190px;
       overflow-y:auto;
       overscroll-behavior:contain;
@@ -724,12 +723,13 @@
 <body>
 <div class="vapor-bg"><div class="sun"></div><div class="grid-floor"></div></div>
 <div class="scanlines"></div>
-<div class="reminder-stack hidden" id="reminderStack"></div>
 
 <div class="side-panel break-panel">
   <div class="side-panel-title">On Break</div>
   <div class="side-panel-list" id="breakList"></div>
 </div>
+
+<div class="reminder-stack hidden" id="reminderStack"></div>
 
 <div class="side-panel logs-panel">
   <div class="side-panel-title">Logs History</div>
@@ -869,8 +869,8 @@
     }
 
     // Then try normalized column headers. This is important because Apps Script
-    // / Google Sheet rows may return headers like "Break Start", "Short Break End",
-    // "Employee Code", or "Last Action" instead of camelCase names.
+    // / Google Sheet rows may return headers like "Break Start", "Short Break
+    // End", "Employee Code", or "Last Action" instead of camelCase names.
     const normalized = {};
     Object.keys(rec).forEach(function(key) {
       normalized[normalizeRecordKey(key)] = rec[key];
@@ -1744,43 +1744,69 @@
 
 
   function syncBreakPanelOffset() {
-    const panel = document.querySelector(".side-panel.break-panel");
-    if (panel) panel.style.top = "88px";
-
     const stack = document.getElementById("reminderStack");
-    const header = document.querySelector(".wrap .header");
-    if (!stack || !header || stack.classList.contains("hidden")) return;
+    const breakPanel = document.querySelector(".side-panel.break-panel");
+    if (!stack) return;
 
-    /*
-     * Anchor the Reminder to the marked position immediately above
-     * "> SYSTEM ONLINE". Extra names remain inside a scrollable list.
-     */
-    const minimumTop = 88;
-    const gapAboveSystemOnline = 10;
-    const bottomLimit = Math.floor(
-      header.getBoundingClientRect().top - gapAboveSystemOnline
-    );
+    if (breakPanel) breakPanel.style.top = "88px";
 
-    const maximumHeight = Math.max(
-      110,
-      Math.min(210, Math.floor(window.innerHeight * 0.22))
-    );
+    // Below ~1400px width the side panels are hidden (see the media query),
+    // so fall back to the original center-of-screen placement above the header.
+    const panelVisible = breakPanel && getComputedStyle(breakPanel).display !== "none";
 
+    if (!panelVisible) {
+      stack.style.left = "50%";
+      stack.style.width = "";
+      stack.style.transform = "translateX(-50%)";
+
+      if (stack.classList.contains("hidden")) return;
+
+      const header = document.querySelector(".wrap .header");
+      if (!header) return;
+
+      const minimumTop = 88;
+      const gapAboveSystemOnline = 10;
+      const bottomLimit = Math.floor(header.getBoundingClientRect().top - gapAboveSystemOnline);
+      const maximumHeight = Math.max(110, Math.min(210, Math.floor(window.innerHeight * 0.22)));
+      const requiredHeight = Math.min(Math.max(62, stack.scrollHeight), maximumHeight);
+      const topPosition = Math.max(minimumTop, bottomLimit - requiredHeight);
+
+      stack.style.top = topPosition + "px";
+      stack.style.maxHeight = Math.max(90, bottomLimit - topPosition) + "px";
+      return;
+    }
+
+    // Anchor the Reminder directly under the "On Break" panel content, in the
+    // same left column, instead of centered above the header.
+    stack.style.transform = "none";
+
+    if (stack.classList.contains("hidden")) return;
+
+    const panelRect = breakPanel.getBoundingClientRect();
+    const breakList = document.getElementById("breakList");
+    let contentBottom = panelRect.top + 40;
+
+    if (breakList) {
+      const items = breakList.children;
+      contentBottom = items.length
+        ? items[items.length - 1].getBoundingClientRect().bottom
+        : breakList.getBoundingClientRect().top + 40;
+    }
+
+    const gapBelowBreakList = 14;
+    const bottomLimit = panelRect.bottom;
+    const maximumHeight = Math.max(110, Math.min(220, Math.floor(window.innerHeight * 0.3)));
+    const topPosition = Math.min(contentBottom + gapBelowBreakList, bottomLimit - 60);
     const requiredHeight = Math.min(
       Math.max(62, stack.scrollHeight),
-      maximumHeight
+      maximumHeight,
+      Math.max(80, bottomLimit - topPosition)
     );
 
-    const topPosition = Math.max(
-      minimumTop,
-      bottomLimit - requiredHeight
-    );
-
+    stack.style.left = panelRect.left + "px";
+    stack.style.width = panelRect.width + "px";
     stack.style.top = topPosition + "px";
-    stack.style.maxHeight = Math.max(
-      90,
-      bottomLimit - topPosition
-    ) + "px";
+    stack.style.maxHeight = requiredHeight + "px";
   }
 
   function reminderInitials(name) {
