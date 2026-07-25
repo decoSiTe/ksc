@@ -508,26 +508,23 @@
       bottom:24px;
       width:280px;
       z-index:3;
-      border-radius:22px;
-      background:
-        linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.015)),
-        rgba(18,8,42,.5);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.10),
-        0 10px 36px rgba(0,0,0,.4),
-        0 0 26px rgba(0,255,255,.10);
-      backdrop-filter:blur(22px) saturate(1.3);
-      -webkit-backdrop-filter:blur(22px) saturate(1.3);
       display:flex;
       flex-direction:column;
-      padding:18px 14px;
+      padding:0 10px;
+      background:transparent;
+      border:0;
+      border-radius:0;
+      box-shadow:none;
+      backdrop-filter:none;
+      -webkit-backdrop-filter:none;
+      pointer-events:none;
     }
 
-    .side-panel.break-panel{left:24px;}
+    .side-panel.break-panel{left:24px;top:150px;}
     .side-panel.logs-panel{right:24px;}
 
     .side-panel-title{
+      width:100%;
       font-family:"Orbitron", sans-serif;
       font-size:13px;
       font-weight:800;
@@ -535,11 +532,14 @@
       text-transform:uppercase;
       color:var(--cyan);
       text-shadow:0 0 10px rgba(0,255,255,.7);
-      margin-bottom:14px;
-      padding:0 4px 12px;
-      border-bottom:1px solid rgba(255,255,255,.12);
+      margin:0 0 14px;
+      padding:0;
+      border:0;
+      text-align:center;
       flex-shrink:0;
     }
+
+    .side-panel.break-panel .side-panel-title{display:none;}
 
     .side-panel-list{
       overflow-y:auto;
@@ -549,6 +549,11 @@
       gap:10px;
       scrollbar-width:none;
       -ms-overflow-style:none;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      padding:0;
+      pointer-events:auto;
     }
 
     .side-panel-list::-webkit-scrollbar{width:0;height:0;display:none;}
@@ -1679,6 +1684,18 @@
     return nowInWindow >= (shiftEnd - REMINDER_BEFORE_SHIFT_END_MINUTES);
   }
 
+
+  function syncBreakPanelOffset() {
+    const stack = document.getElementById("reminderStack");
+    const panel = document.querySelector(".side-panel.break-panel");
+    if (!panel) return;
+    if (!stack || stack.classList.contains("hidden") || !stack.children.length) {
+      panel.style.top = "150px";
+      return;
+    }
+    panel.style.top = Math.max(150, Math.ceil(stack.getBoundingClientRect().bottom + 12)) + "px";
+  }
+
   function updateReminderStack() {
     const stack = document.getElementById("reminderStack");
     if (!stack) return;
@@ -1696,10 +1713,11 @@
     if (!reminders.length) {
       stack.classList.add("hidden");
       stack.innerHTML = "";
+      requestAnimationFrame(syncBreakPanelOffset);
       return;
     }
 
-    stack.innerHTML = '<div class="glass-reminder title">Reminder</div>' +
+    stack.innerHTML = '<div class="glass-reminder title">On Break</div>' +
       reminders.slice(0, 5).map(function(item) {
         return '<div class="glass-reminder">' +
           escapeHtml(item.emp.name || item.emp.code || "Employee") +
@@ -1707,7 +1725,12 @@
         '</div>';
       }).join("");
     stack.classList.remove("hidden");
+    requestAnimationFrame(syncBreakPanelOffset);
   }
+
+  window.addEventListener("resize", function() {
+    requestAnimationFrame(syncBreakPanelOffset);
+  });
 
   function escapeHtml(value) {
     return String(value || "").replace(/[&<>"']/g, function(ch) {
