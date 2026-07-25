@@ -1777,27 +1777,18 @@
       return;
     }
 
-    // Anchor the Reminder directly under the "On Break" panel content, in the
-    // same left column, instead of centered above the header.
+    // Anchor the Reminder at a fixed spot in the same left column as "On
+    // Break", instead of following the last On Break item. This keeps the
+    // Reminder position constant no matter how many people are on break.
     stack.style.transform = "none";
 
     if (stack.classList.contains("hidden")) return;
 
     const panelRect = breakPanel.getBoundingClientRect();
-    const breakList = document.getElementById("breakList");
-    let contentBottom = panelRect.top + 40;
-
-    if (breakList) {
-      const items = breakList.children;
-      contentBottom = items.length
-        ? items[items.length - 1].getBoundingClientRect().bottom
-        : breakList.getBoundingClientRect().top + 40;
-    }
-
-    const gapBelowBreakList = 14;
+    const FIXED_OFFSET_FROM_PANEL_TOP = 340;
     const bottomLimit = panelRect.bottom;
     const maximumHeight = Math.max(110, Math.min(220, Math.floor(window.innerHeight * 0.3)));
-    const topPosition = Math.min(contentBottom + gapBelowBreakList, bottomLimit - 60);
+    const topPosition = Math.min(panelRect.top + FIXED_OFFSET_FROM_PANEL_TOP, bottomLimit - 60);
     const requiredHeight = Math.min(
       Math.max(62, stack.scrollHeight),
       maximumHeight,
