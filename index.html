@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="center-reminder-onbreak-heading" content="2026-07-25-v1" />
+  <meta name="reminder-arrow-position-scroll" content="2026-07-25-v2" />
   <title>Employee Kiosk – DTR</title>
   <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -417,17 +417,18 @@
     .reminder-stack{
       position:fixed;
       left:50%;
-      top:82px;
+      top:88px;
       transform:translateX(-50%);
       z-index:5;
       display:flex;
       flex-direction:column;
       gap:8px;
       width:320px;
-      max-height:178px;
+      max-height:190px;
       overflow-y:auto;
+      overscroll-behavior:contain;
       padding:0 4px 4px;
-      pointer-events:none;
+      pointer-events:auto;
       scrollbar-width:none;
       -ms-overflow-style:none;
     }
@@ -439,11 +440,19 @@
     }
 
     .reminder-stack .reminder-title{
+      position:sticky;
+      top:0;
+      z-index:3;
       width:100%;
       margin:0 0 4px;
-      padding:0;
+      padding:0 0 5px;
       border:0;
-      background:transparent;
+      background:linear-gradient(
+        180deg,
+        rgba(9,0,20,.96) 0%,
+        rgba(9,0,20,.78) 72%,
+        rgba(9,0,20,0) 100%
+      );
       box-shadow:none;
       text-align:center;
       font-family:"Orbitron", sans-serif;
@@ -453,12 +462,14 @@
       text-transform:uppercase;
       color:var(--cyan);
       text-shadow:0 0 10px rgba(0,255,255,.7);
+      flex-shrink:0;
     }
 
     .reminder-stack .reminder-item{
       width:100%;
       min-height:54px;
-      pointer-events:none;
+      pointer-events:auto;
+      flex-shrink:0;
     }
 
     .glass-reminder{
@@ -586,7 +597,9 @@
 
     .side-panel-list{
       overflow-y:auto;
+      overscroll-behavior:contain;
       flex:1;
+      min-height:0;
       display:flex;
       flex-direction:column;
       gap:10px;
@@ -1733,6 +1746,41 @@
   function syncBreakPanelOffset() {
     const panel = document.querySelector(".side-panel.break-panel");
     if (panel) panel.style.top = "88px";
+
+    const stack = document.getElementById("reminderStack");
+    const header = document.querySelector(".wrap .header");
+    if (!stack || !header || stack.classList.contains("hidden")) return;
+
+    /*
+     * Anchor the Reminder to the marked position immediately above
+     * "> SYSTEM ONLINE". Extra names remain inside a scrollable list.
+     */
+    const minimumTop = 88;
+    const gapAboveSystemOnline = 10;
+    const bottomLimit = Math.floor(
+      header.getBoundingClientRect().top - gapAboveSystemOnline
+    );
+
+    const maximumHeight = Math.max(
+      110,
+      Math.min(210, Math.floor(window.innerHeight * 0.22))
+    );
+
+    const requiredHeight = Math.min(
+      Math.max(62, stack.scrollHeight),
+      maximumHeight
+    );
+
+    const topPosition = Math.max(
+      minimumTop,
+      bottomLimit - requiredHeight
+    );
+
+    stack.style.top = topPosition + "px";
+    stack.style.maxHeight = Math.max(
+      90,
+      bottomLimit - topPosition
+    ) + "px";
   }
 
   function reminderInitials(name) {
@@ -1799,6 +1847,10 @@
   }
 
   window.addEventListener("resize", function() {
+    requestAnimationFrame(syncBreakPanelOffset);
+  });
+
+  window.addEventListener("load", function() {
     requestAnimationFrame(syncBreakPanelOffset);
   });
 
