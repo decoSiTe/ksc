@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="reminder-arrow-position-scroll" content="2026-07-25-v2" />
+  <meta name="onbreak-reminder-spacing-scroll" content="2026-07-25-v3" />
   <title>Employee Kiosk – DTR</title>
   <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -567,7 +567,10 @@
       pointer-events:none;
     }
 
-    .side-panel.break-panel{left:24px;top:88px;}
+    .side-panel.break-panel{
+      left:24px;
+      top:88px;
+    }
     .side-panel.logs-panel{right:24px;}
 
     .side-panel-title{
@@ -718,6 +721,25 @@
       }
       .glass-reminder.title{font-size:16px;}
     }
+  
+    /* Independent scrolling with spacing between On Break and Reminder. */
+    .side-panel.break-panel {
+      overflow:hidden !important;
+    }
+
+    .side-panel.break-panel .side-panel-list {
+      overflow-y:auto !important;
+      min-height:0 !important;
+      touch-action:pan-y;
+      overscroll-behavior:contain;
+    }
+
+    .reminder-stack {
+      overflow-y:auto !important;
+      touch-action:pan-y;
+      overscroll-behavior:contain;
+    }
+
   </style>
   <link rel="icon" type="image/png" href="clock.png">
 </head>
@@ -1751,10 +1773,14 @@
 
     if (breakPanel) breakPanel.style.top = "88px";
 
-    // Below ~1400px width the side panels are hidden (see the media query),
-    // so fall back to the original center-of-screen placement above the header.
-    const panelVisible = breakPanel && getComputedStyle(breakPanel).display !== "none";
+    const panelVisible =
+      breakPanel &&
+      getComputedStyle(breakPanel).display !== "none";
 
+    /*
+     * On smaller screens, keep the existing centered reminder above
+     * SYSTEM ONLINE because the side panels are hidden.
+     */
     if (!panelVisible) {
       stack.style.left = "50%";
       stack.style.width = "";
@@ -1767,38 +1793,71 @@
 
       const minimumTop = 88;
       const gapAboveSystemOnline = 10;
-      const bottomLimit = Math.floor(header.getBoundingClientRect().top - gapAboveSystemOnline);
-      const maximumHeight = Math.max(110, Math.min(210, Math.floor(window.innerHeight * 0.22)));
-      const requiredHeight = Math.min(Math.max(62, stack.scrollHeight), maximumHeight);
-      const topPosition = Math.max(minimumTop, bottomLimit - requiredHeight);
+      const bottomLimit = Math.floor(
+        header.getBoundingClientRect().top - gapAboveSystemOnline
+      );
+      const maximumHeight = Math.max(
+        110,
+        Math.min(210, Math.floor(window.innerHeight * 0.22))
+      );
+      const requiredHeight = Math.min(
+        Math.max(62, stack.scrollHeight),
+        maximumHeight
+      );
+      const topPosition = Math.max(
+        minimumTop,
+        bottomLimit - requiredHeight
+      );
 
       stack.style.top = topPosition + "px";
-      stack.style.maxHeight = Math.max(90, bottomLimit - topPosition) + "px";
+      stack.style.maxHeight =
+        Math.max(90, bottomLimit - topPosition) + "px";
       return;
     }
 
-    // Anchor the Reminder at a fixed spot in the same left column as "On
-    // Break", instead of following the last On Break item. This keeps the
-    // Reminder position constant no matter how many people are on break.
-    stack.style.transform = "none";
-
-    if (stack.classList.contains("hidden")) return;
-
+    /*
+     * Desktop left column:
+     * On Break uses the upper section.
+     * Reminder uses the lower section.
+     * Both sections scroll independently with a clear gap between them.
+     */
     const panelRect = breakPanel.getBoundingClientRect();
-    const FIXED_OFFSET_FROM_PANEL_TOP = 340;
-    const bottomLimit = panelRect.bottom;
-    const maximumHeight = Math.max(110, Math.min(220, Math.floor(window.innerHeight * 0.3)));
-    const topPosition = Math.min(panelRect.top + FIXED_OFFSET_FROM_PANEL_TOP, bottomLimit - 60);
-    const requiredHeight = Math.min(
-      Math.max(62, stack.scrollHeight),
-      maximumHeight,
-      Math.max(80, bottomLimit - topPosition)
+    const gap = 24;
+    const bottomMargin = 24;
+    const minimumOnBreakHeight = 240;
+    const minimumReminderHeight = 150;
+    const availableBottom = window.innerHeight - bottomMargin;
+
+    let reminderTop = Math.max(
+      panelRect.top + minimumOnBreakHeight + gap,
+      Math.round(window.innerHeight * 0.53)
+    );
+
+    reminderTop = Math.min(
+      reminderTop,
+      availableBottom - minimumReminderHeight
+    );
+
+    const reminderHeight = Math.max(
+      minimumReminderHeight,
+      availableBottom - reminderTop
     );
 
     stack.style.left = panelRect.left + "px";
     stack.style.width = panelRect.width + "px";
-    stack.style.top = topPosition + "px";
-    stack.style.maxHeight = requiredHeight + "px";
+    stack.style.top = reminderTop + "px";
+    stack.style.maxHeight = reminderHeight + "px";
+    stack.style.transform = "none";
+
+    /*
+     * End the On Break panel before Reminder begins. The On Break title
+     * remains fixed and only its name list scrolls.
+     */
+    breakPanel.style.bottom =
+      Math.max(
+        bottomMargin,
+        window.innerHeight - reminderTop + gap
+      ) + "px";
   }
 
   function reminderInitials(name) {
@@ -1848,7 +1907,7 @@
     }
 
     stack.innerHTML = '<div class="reminder-title">Reminder</div>' +
-      reminders.slice(0, 5).map(function(item) {
+      reminders.map(function(item) {
         const employeeName = item.emp.name || item.emp.code || "Employee";
         return '<div class="log-item reminder-item">' +
           '<div class="log-avatar" style="background:' + reminderAvatarGradient(employeeName) + '">' +
