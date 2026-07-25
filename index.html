@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="center-reminder-onbreak-heading" content="2026-07-25-v1" />
   <title>Employee Kiosk – DTR</title>
   <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -415,13 +416,48 @@
 
     .reminder-stack{
       position:fixed;
-      left:28px;
-      top:92px;
+      left:50%;
+      top:82px;
+      transform:translateX(-50%);
       z-index:5;
       display:flex;
       flex-direction:column;
-      gap:12px;
-      width:260px;
+      gap:8px;
+      width:320px;
+      max-height:178px;
+      overflow-y:auto;
+      padding:0 4px 4px;
+      pointer-events:none;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+    }
+
+    .reminder-stack::-webkit-scrollbar{
+      width:0;
+      height:0;
+      display:none;
+    }
+
+    .reminder-stack .reminder-title{
+      width:100%;
+      margin:0 0 4px;
+      padding:0;
+      border:0;
+      background:transparent;
+      box-shadow:none;
+      text-align:center;
+      font-family:"Orbitron", sans-serif;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:var(--cyan);
+      text-shadow:0 0 10px rgba(0,255,255,.7);
+    }
+
+    .reminder-stack .reminder-item{
+      width:100%;
+      min-height:54px;
       pointer-events:none;
     }
 
@@ -520,7 +556,7 @@
       pointer-events:none;
     }
 
-    .side-panel.break-panel{left:24px;top:150px;}
+    .side-panel.break-panel{left:24px;top:88px;}
     .side-panel.logs-panel{right:24px;}
 
     .side-panel-title{
@@ -539,7 +575,14 @@
       flex-shrink:0;
     }
 
-    .side-panel.break-panel .side-panel-title{display:none;}
+    .side-panel.break-panel .side-panel-title{
+      display:block;
+      color:var(--cyan);
+      text-align:center;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+    }
 
     .side-panel-list{
       overflow-y:auto;
@@ -652,11 +695,13 @@
       .grid2.single-action .abtn{width:100%;min-width:0;}
       .abtn{font-size:12px;min-height:54px;padding:12px 8px;}
       .reminder-stack{
-        left:14px;
-        right:14px;
-        top:auto;
-        bottom:18px;
-        width:auto;
+        left:50%;
+        right:auto;
+        top:76px;
+        bottom:auto;
+        width:min(320px, calc(100vw - 28px));
+        transform:translateX(-50%);
+        max-height:150px;
       }
       .glass-reminder.title{font-size:16px;}
     }
@@ -1686,14 +1731,33 @@
 
 
   function syncBreakPanelOffset() {
-    const stack = document.getElementById("reminderStack");
     const panel = document.querySelector(".side-panel.break-panel");
-    if (!panel) return;
-    if (!stack || stack.classList.contains("hidden") || !stack.children.length) {
-      panel.style.top = "150px";
-      return;
+    if (panel) panel.style.top = "88px";
+  }
+
+  function reminderInitials(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function reminderAvatarGradient(name) {
+    const colors = [
+      ["#FF00FF","#00FFFF"],
+      ["#FF9900","#FF00FF"],
+      ["#00FFFF","#7A5CFF"],
+      ["#FF3B6B","#FF9900"],
+      ["#7A5CFF","#00FFFF"],
+      ["#00FFB3","#00FFFF"]
+    ];
+    const text = String(name || "");
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
     }
-    panel.style.top = Math.max(150, Math.ceil(stack.getBoundingClientRect().bottom + 12)) + "px";
+    const pair = colors[hash % colors.length];
+    return "linear-gradient(135deg," + pair[0] + "," + pair[1] + ")";
   }
 
   function updateReminderStack() {
@@ -1717,11 +1781,17 @@
       return;
     }
 
-    stack.innerHTML = '<div class="glass-reminder title">On Break</div>' +
+    stack.innerHTML = '<div class="reminder-title">Reminder</div>' +
       reminders.slice(0, 5).map(function(item) {
-        return '<div class="glass-reminder">' +
-          escapeHtml(item.emp.name || item.emp.code || "Employee") +
-          '<span class="small">Please tap ' + escapeHtml(item.action) + '</span>' +
+        const employeeName = item.emp.name || item.emp.code || "Employee";
+        return '<div class="log-item reminder-item">' +
+          '<div class="log-avatar" style="background:' + reminderAvatarGradient(employeeName) + '">' +
+            escapeHtml(reminderInitials(employeeName)) +
+          '</div>' +
+          '<div class="log-info">' +
+            '<div class="log-name">' + escapeHtml(employeeName) + '</div>' +
+            '<div class="log-action">Please tap ' + escapeHtml(item.action) + '</div>' +
+          '</div>' +
         '</div>';
       }).join("");
     stack.classList.remove("hidden");
