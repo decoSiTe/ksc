@@ -501,21 +501,27 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     @keyframes sunPulse{from{opacity:.16;transform:translateX(-50%) scale(.96);}to{opacity:.3;transform:translateX(-50%) scale(1.05);}}
 
-    /* ── On Break / Logs History side panels ─────────────────────────────── */
+    /* ── On Break / Logs History side panels (glass-bubble style) ─────────── */
     .side-panel{
       position:fixed;
       top:88px;
       bottom:24px;
       width:280px;
       z-index:3;
-      background:var(--card);
-      border:1px solid rgba(0,255,255,.28);
-      border-top:2px solid var(--magenta);
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(14px);
+      border-radius:22px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.015)),
+        rgba(18,8,42,.5);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.10),
+        0 10px 36px rgba(0,0,0,.4),
+        0 0 26px rgba(0,255,255,.10);
+      backdrop-filter:blur(22px) saturate(1.3);
+      -webkit-backdrop-filter:blur(22px) saturate(1.3);
       display:flex;
       flex-direction:column;
-      padding:16px 14px;
+      padding:18px 14px;
     }
 
     .side-panel.break-panel{left:24px;}
@@ -529,9 +535,9 @@
       text-transform:uppercase;
       color:var(--cyan);
       text-shadow:0 0 10px rgba(0,255,255,.7);
-      margin-bottom:12px;
-      padding-bottom:10px;
-      border-bottom:1px solid rgba(0,255,255,.2);
+      margin-bottom:14px;
+      padding:0 4px 12px;
+      border-bottom:1px solid rgba(255,255,255,.12);
       flex-shrink:0;
     }
 
@@ -560,10 +566,16 @@
       display:flex;
       align-items:center;
       gap:10px;
-      padding:9px 10px;
-      background:rgba(0,0,0,.38);
-      border:1px solid rgba(255,0,255,.22);
-      border-left:2px solid var(--cyan);
+      padding:10px 12px;
+      border-radius:16px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.14),
+        0 4px 14px rgba(0,0,0,.28);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
       flex-shrink:0;
     }
 
@@ -580,12 +592,12 @@
       font-size:14px;
       color:#fff;
       background:linear-gradient(135deg,var(--magenta),var(--cyan));
-      box-shadow:0 0 10px rgba(255,0,255,.35);
+      box-shadow:0 0 10px rgba(255,0,255,.35), inset 0 1px 0 rgba(255,255,255,.35);
     }
 
     .log-avatar.break{
       background:linear-gradient(135deg,var(--orange),var(--magenta));
-      box-shadow:0 0 10px rgba(255,153,0,.4);
+      box-shadow:0 0 10px rgba(255,153,0,.4), inset 0 1px 0 rgba(255,255,255,.35);
     }
 
     .log-info{
@@ -2373,8 +2385,7 @@
   // already produces, without changing any existing logic or function body.
   // ══════════════════════════════════════════════════════════════════════
   (function() {
-    const LOG_STORAGE_PREFIX = "kioskdtr_logs_";
-    const MAX_LOG_ENTRIES = 150;
+    const MAX_LOG_ENTRIES = 60;
     const AVATAR_COLOR_PAIRS = [
       ["#FF00FF","#00FFFF"],
       ["#FF9900","#FF00FF"],
@@ -2384,21 +2395,46 @@
       ["#00FFB3","#00FFFF"]
     ];
 
-    function todayLogKey() { return LOG_STORAGE_PREFIX + fmt(); }
+    // Logs History is derived straight from the same todayRecords /
+    // previousRecords data the On Break panel already reads — this is the
+    // data the kiosk already has as soon as it syncs, and it is kept current
+    // by the same optimistic local update doAction() already performs before
+    // it calls updateReminderStack(). No new fetch, no new state is added.
+    const LOG_FIELDS = ["departure","shortBreakEnd","breakEnd","shortBreakStart","breakStart","arrival"];
 
-    function loadLogs() {
-      try {
-        const raw = localStorage.getItem(todayLogKey());
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (_) { return []; }
+    function buildDerivedLogs() {
+      const entries = [];
+
+      employees.forEach(function(emp) {
+        const codeKey = String(emp.code || "").toUpperCase();
+        [
+          { rec: todayRecords[codeKey], fallbackDate: todayDateStr || fmt() },
+          { rec: previousRecords[codeKey], fallbackDate: previousDateStr || dateOffsetStr(new Date(), -1) }
+        ].forEach(function(entry) {
+          const rec = entry.rec;
+          if (!rec) return;
+          const baseDate = rec.workDate || rec.date || entry.fallbackDate;
+
+          LOG_FIELDS.forEach(function(field) {
+            const value = rec[field];
+            if (!hasValue(value)) return;
+            const mins = timeTextToMinutes(value);
+            const sortTime = mins !== null
+              ? String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0")
+              : "00:00";
+            entries.push({
+              name: emp.name,
+              action: labels[field] || field,
+              time: value,
+              sortKey: baseDate + "T" + sortTime
+            });
+          });
+        });
+      });
+
+      entries.sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
+      return entries.slice(0, MAX_LOG_ENTRIES);
     }
-
-    function saveLogs(list) {
-      try { localStorage.setItem(todayLogKey(), JSON.stringify(list.slice(0, MAX_LOG_ENTRIES))); } catch (_) {}
-    }
-
-    let logEntries = loadLogs();
 
     function initials(name) {
       const t = String(name || "").trim();
@@ -2419,6 +2455,7 @@
     function renderLogs() {
       const el = document.getElementById("logsList");
       if (!el) return;
+      const logEntries = buildDerivedLogs();
       if (!logEntries.length) {
         el.innerHTML = '<div class="side-empty">No activity yet.</div>';
         return;
@@ -2434,25 +2471,6 @@
         '</div>';
       }).join("");
     }
-
-    function addLogEntry(name, action, time) {
-      logEntries.unshift({ name: name, action: action, time: time });
-      if (logEntries.length > MAX_LOG_ENTRIES) logEntries.length = MAX_LOG_ENTRIES;
-      saveLogs(logEntries);
-      renderLogs();
-    }
-
-    // Wrap toast() so every successful attendance tap (doAction always calls
-    // toast("✅ Name — Action at Time","ok") right after applying the action)
-    // is captured into the Logs History panel, without touching doAction.
-    const _originalToast = toast;
-    toast = function(msg, type) {
-      _originalToast(msg, type);
-      if (type === "ok" && typeof msg === "string" && msg.indexOf("✅") === 0) {
-        const m = msg.match(/^✅\s*(.+?)\s*—\s*(.+?)\s*at\s*(.+)$/);
-        if (m) addLogEntry(m[1].trim(), m[2].trim(), m[3].trim());
-      }
-    };
 
     function renderOnBreak() {
       const el = document.getElementById("breakList");
@@ -2494,6 +2512,7 @@
     updateReminderStack = function() {
       _originalUpdateReminderStack();
       renderOnBreak();
+      renderLogs();
     };
 
     renderLogs();
