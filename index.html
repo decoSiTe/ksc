@@ -1640,13 +1640,31 @@
     return "";
   }
 
-  function fieldMinutesForSort(rec, minutes) {
-    if (minutes === null) return -1;
+  function fieldEpochForSort(rec, timeValue) {
+    const mins = timeTextToMinutes(timeValue);
+    if (mins === null) return -Infinity;
+
+    // Anchor this field's time to its real calendar date so recency compares
+    // correctly across employees and across days — not just within one shift.
+    let baseDateStr = (rec && (rec.workDate || rec.date)) || todayDateStr || fmt();
+
     // A previous-night record's early-morning time (e.g. Short Break End 05:44)
-    // happened chronologically after that shift's evening start, so push it
-    // later than plain same-day morning times when sorting the log feed.
-    if (rec && rec.previousNight && minutes < (12 * 60)) return minutes + (24 * 60);
-    return minutes;
+    // actually falls on the calendar day AFTER the shift's evening start date.
+    if (rec && rec.previousNight && mins < (12 * 60)) {
+      baseDateStr = dateOffsetStr(baseDateStr, 1);
+    }
+
+    const parts = String(baseDateStr || fmt()).split("-").map(Number);
+    const dt = new Date(
+      parts[0] || new Date().getFullYear(),
+      (parts[1] || 1) - 1,
+      parts[2] || 1,
+      Math.floor(mins / 60),
+      mins % 60,
+      0,
+      0
+    );
+    return dt.getTime();
   }
 
   function collectRecordLogEntries(recordsMap) {
@@ -1674,7 +1692,7 @@
           name: name,
           action: f[1],
           time: value,
-          sortKey: fieldMinutesForSort(rec, timeTextToMinutes(value))
+          sortKey: fieldEpochForSort(rec, value)
         });
       });
     });
@@ -1718,7 +1736,7 @@
           name: name,
           action: f[1],
           time: value,
-          sortKey: fieldMinutesForSort(rec, timeTextToMinutes(value))
+          sortKey: fieldEpochForSort(rec, value)
         });
       });
     });
