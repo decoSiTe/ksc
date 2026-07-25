@@ -422,7 +422,30 @@
       flex-direction:column;
       gap:12px;
       width:260px;
-      pointer-events:none;
+      pointer-events:auto;
+      max-height:80vh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+      overscroll-behavior:contain;
+    }
+
+    .reminder-stack::-webkit-scrollbar{
+      display:none;
+      width:0;
+      height:0;
+    }
+
+    .reminder-stack .stack-label{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:linear-gradient(180deg, rgba(9,0,20,.75) 60%, transparent);
+      padding-top:6px;
+      padding-bottom:8px;
+      margin-bottom:-4px;
     }
 
     .logs-stack{
@@ -587,6 +610,7 @@
         top:auto;
         bottom:18px;
         width:auto;
+        max-height:34vh;
       }
       .logs-stack{
         left:14px;
@@ -1669,11 +1693,43 @@
     return icons[action] || "🕒";
   }
 
+  function collectAllLogEntries() {
+    const entries = [];
+    employees.forEach(function(emp) {
+      const activeState = getActiveRecordState(emp);
+      const rec = enforceNightShiftLastActionState(
+        cleanStaleNightShiftEnds(activeState.record || {}, emp), emp
+      );
+
+      const name = emp.name || rec.employeeName || emp.code;
+      const fields = [
+        ["arrival", "Arrived"],
+        ["breakStart", "Break Start"],
+        ["shortBreakStart", "Short Break Start"],
+        ["breakEnd", "Break End"],
+        ["shortBreakEnd", "Short Break End"],
+        ["departure", "Departure"]
+      ];
+
+      fields.forEach(function(f) {
+        const value = rec[f[0]];
+        if (!hasValue(value)) return;
+        entries.push({
+          name: name,
+          action: f[1],
+          time: value,
+          sortKey: fieldMinutesForSort(rec, timeTextToMinutes(value))
+        });
+      });
+    });
+    return entries;
+  }
+
   function updateLogsStack() {
     const stack = document.getElementById("logsStack");
     if (!stack) return;
 
-    const entries = collectRecordLogEntries(todayRecords).concat(collectRecordLogEntries(previousRecords));
+    const entries = collectAllLogEntries();
     entries.sort(function(a, b) { return (b.sortKey ?? -1) - (a.sortKey ?? -1); });
 
     const top = entries.slice(0, 50);
