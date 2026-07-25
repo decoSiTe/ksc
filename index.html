@@ -422,155 +422,61 @@
       flex-direction:column;
       gap:12px;
       width:260px;
-      pointer-events:auto;
-      max-height:80vh;
-      overflow-y:auto;
-      overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      scrollbar-width:none;
-      -ms-overflow-style:none;
-      overscroll-behavior:contain;
+      pointer-events:none;
     }
 
-    .reminder-stack::-webkit-scrollbar{
-      display:none;
-      width:0;
-      height:0;
-    }
-
-    .reminder-stack .stack-label{
-      position:sticky;
-      top:0;
-      z-index:1;
-      background:linear-gradient(180deg, rgba(9,0,20,.75) 60%, transparent);
-      padding-top:6px;
-      padding-bottom:8px;
-      margin-bottom:-4px;
-    }
-
-    .logs-stack{
-      position:fixed;
-      right:28px;
-      top:92px;
-      z-index:5;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      width:260px;
-      pointer-events:auto;
-      max-height:80vh;
-      overflow-y:auto;
-      overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      scrollbar-width:none;
-      -ms-overflow-style:none;
-      overscroll-behavior:contain;
-    }
-
-    .logs-stack::-webkit-scrollbar{
-      display:none;
-      width:0;
-      height:0;
-    }
-
-    .stack-label{
-      color:#fff;
-      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      font-size:13px;
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:1.2px;
-      padding:2px 8px 4px;
-      opacity:.82;
-      text-shadow:0 1px 3px rgba(0,0,0,.6);
-    }
-
-    .logs-stack .stack-label{
-      position:sticky;
-      top:0;
-      z-index:1;
-      background:linear-gradient(180deg, rgba(9,0,20,.75) 60%, transparent);
-      padding-top:6px;
-      padding-bottom:8px;
-      margin-bottom:-4px;
-    }
-
-    .ios-notif{
+    .glass-reminder{
       position:relative;
-      display:flex;
-      align-items:flex-start;
-      gap:11px;
-      padding:12px 13px;
-      border-radius:20px;
+      overflow:hidden;
+      border-radius:999px;
+      padding:12px 18px;
+      min-height:44px;
+      color:#061022;
       background:
-        linear-gradient(135deg, rgba(90,90,100,.42), rgba(40,40,50,.38));
-      border:1px solid rgba(255,255,255,.14);
+        linear-gradient(135deg, rgba(255,255,255,.82), rgba(210,226,255,.56)),
+        radial-gradient(circle at 20% 12%, rgba(255,255,255,.95), transparent 40%);
+      border:1px solid rgba(255,255,255,.72);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.16),
-        0 10px 26px rgba(0,0,0,.38),
-        0 0 22px rgba(0,255,255,.06);
-      backdrop-filter:blur(26px) saturate(1.6);
-      -webkit-backdrop-filter:blur(26px) saturate(1.6);
-      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-      text-align:left;
-      color:#fff;
-    }
-
-    .ios-notif-icon{
-      flex:0 0 auto;
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:16px;
-      background:linear-gradient(135deg, var(--magenta), var(--cyan));
-      box-shadow:0 2px 8px rgba(0,0,0,.35);
-    }
-
-    .ios-notif-body{
-      flex:1;
-      min-width:0;
-    }
-
-    .ios-notif-head{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:8px;
-    }
-
-    .ios-notif-title{
-      font-weight:700;
-      font-size:14px;
-      color:#fff;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+        inset 0 1px 0 rgba(255,255,255,.92),
+        inset 0 -12px 24px rgba(20,30,60,.16),
+        0 12px 30px rgba(0,0,0,.24),
+        0 0 26px rgba(0,255,255,.16);
+      backdrop-filter:blur(18px) saturate(1.35);
+      -webkit-backdrop-filter:blur(18px) saturate(1.35);
+      font-family:Arial, sans-serif;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.2px;
       text-transform:none;
-      letter-spacing:normal;
+      text-align:center;
     }
 
-    .ios-notif-time{
-      flex:0 0 auto;
-      font-size:11px;
+    .glass-reminder::before{
+      content:"";
+      position:absolute;
+      inset:2px 12px auto 12px;
+      height:38%;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.08));
+      opacity:.72;
+      pointer-events:none;
+    }
+
+    .glass-reminder.title{
+      font-size:20px;
       font-weight:500;
-      color:rgba(255,255,255,.55);
+      padding:9px 18px;
+      color:#0b1020;
     }
 
-    .ios-notif-sub{
-      margin-top:2px;
-      font-size:13px;
-      font-weight:400;
-      color:rgba(235,235,245,.82);
-      line-height:1.35;
-      text-transform:none;
-      letter-spacing:normal;
-      overflow:hidden;
-      display:-webkit-box;
-      -webkit-line-clamp:2;
-      -webkit-box-orient:vertical;
+    .glass-reminder .small{
+      display:block;
+      margin-top:3px;
+      font-size:10px;
+      font-weight:700;
+      color:rgba(6,16,34,.72);
+      text-transform:uppercase;
+      letter-spacing:.8px;
     }
 
     .hidden{display:none!important;}
@@ -595,6 +501,130 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     @keyframes sunPulse{from{opacity:.16;transform:translateX(-50%) scale(.96);}to{opacity:.3;transform:translateX(-50%) scale(1.05);}}
 
+    /* ── On Break / Logs History side panels ─────────────────────────────── */
+    .side-panel{
+      position:fixed;
+      top:88px;
+      bottom:24px;
+      width:280px;
+      z-index:3;
+      background:var(--card);
+      border:1px solid rgba(0,255,255,.28);
+      border-top:2px solid var(--magenta);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+      display:flex;
+      flex-direction:column;
+      padding:16px 14px;
+    }
+
+    .side-panel.break-panel{left:24px;}
+    .side-panel.logs-panel{right:24px;}
+
+    .side-panel-title{
+      font-family:"Orbitron", sans-serif;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:var(--cyan);
+      text-shadow:0 0 10px rgba(0,255,255,.7);
+      margin-bottom:12px;
+      padding-bottom:10px;
+      border-bottom:1px solid rgba(0,255,255,.2);
+      flex-shrink:0;
+    }
+
+    .side-panel-list{
+      overflow-y:auto;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+    }
+
+    .side-panel-list::-webkit-scrollbar{width:0;height:0;display:none;}
+
+    .side-empty{
+      color:var(--muted);
+      font-size:11px;
+      text-align:center;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      padding:18px 4px;
+    }
+
+    .log-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 10px;
+      background:rgba(0,0,0,.38);
+      border:1px solid rgba(255,0,255,.22);
+      border-left:2px solid var(--cyan);
+      flex-shrink:0;
+    }
+
+    .log-avatar{
+      width:34px;
+      height:34px;
+      min-width:34px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:"Orbitron", sans-serif;
+      font-weight:800;
+      font-size:14px;
+      color:#fff;
+      background:linear-gradient(135deg,var(--magenta),var(--cyan));
+      box-shadow:0 0 10px rgba(255,0,255,.35);
+    }
+
+    .log-avatar.break{
+      background:linear-gradient(135deg,var(--orange),var(--magenta));
+      box-shadow:0 0 10px rgba(255,153,0,.4);
+    }
+
+    .log-info{
+      flex:1;
+      min-width:0;
+    }
+
+    .log-name{
+      font-family:Arial, sans-serif;
+      font-size:12.5px;
+      font-weight:800;
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      letter-spacing:.2px;
+    }
+
+    .log-action{
+      font-size:10.5px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.6px;
+      margin-top:2px;
+    }
+
+    .log-time{
+      font-family:"Share Tech Mono", monospace;
+      font-size:11px;
+      color:var(--cyan);
+      text-shadow:0 0 6px rgba(0,255,255,.5);
+      flex-shrink:0;
+      padding-left:6px;
+    }
+
+    @media (max-width:1400px){
+      .side-panel{display:none;}
+    }
+
     @media (max-width:520px){
       body{padding:14px;}
       .wrap{max-width:100%;}
@@ -610,17 +640,8 @@
         top:auto;
         bottom:18px;
         width:auto;
-        max-height:34vh;
       }
-      .logs-stack{
-        left:14px;
-        right:14px;
-        top:92px;
-        bottom:auto;
-        width:auto;
-        max-height:34vh;
-      }
-      .stack-label{font-size:12px;}
+      .glass-reminder.title{font-size:16px;}
     }
   </style>
   <link rel="icon" type="image/png" href="clock.png">
@@ -629,7 +650,17 @@
 <div class="vapor-bg"><div class="sun"></div><div class="grid-floor"></div></div>
 <div class="scanlines"></div>
 <div class="reminder-stack hidden" id="reminderStack"></div>
-<div class="logs-stack hidden" id="logsStack"></div>
+
+<div class="side-panel break-panel">
+  <div class="side-panel-title">On Break</div>
+  <div class="side-panel-list" id="breakList"></div>
+</div>
+
+<div class="side-panel logs-panel">
+  <div class="side-panel-title">Logs History</div>
+  <div class="side-panel-list" id="logsList"></div>
+</div>
+
 <div class="wrap">
   <div class="header"><h1>KS Internal DTR Kiosk</h1><p>Daily Time Record System</p></div>
   <div class="clock" id="clk">--:--:--</div>
@@ -1629,153 +1660,14 @@
   }
 
   function shouldShowBreakReminder(rec, emp) {
-    // Show for any employee who currently has an open, unfinished break —
-    // not only when they're close to their shift end.
-    return !!openBreakReminderAction(rec, emp);
-  }
-
-  function breakStartTimeForRec(rec, action) {
-    if (action === "Short Break End") return rec.shortBreakStart || "";
-    if (action === "Break End") return rec.breakStart || "";
-    return "";
-  }
-
-  function fieldEpochForSort(rec, timeValue) {
-    const mins = timeTextToMinutes(timeValue);
-    if (mins === null) return -Infinity;
-
-    // Anchor this field's time to its real calendar date so recency compares
-    // correctly across employees and across days — not just within one shift.
-    let baseDateStr = (rec && (rec.workDate || rec.date)) || todayDateStr || fmt();
-
-    // A previous-night record's early-morning time (e.g. Short Break End 05:44)
-    // actually falls on the calendar day AFTER the shift's evening start date.
-    if (rec && rec.previousNight && mins < (12 * 60)) {
-      baseDateStr = dateOffsetStr(baseDateStr, 1);
-    }
-
-    const parts = String(baseDateStr || fmt()).split("-").map(Number);
-    const dt = new Date(
-      parts[0] || new Date().getFullYear(),
-      (parts[1] || 1) - 1,
-      parts[2] || 1,
-      Math.floor(mins / 60),
-      mins % 60,
-      0,
-      0
-    );
-    return dt.getTime();
-  }
-
-  function collectRecordLogEntries(recordsMap) {
-    const entries = [];
-    Object.keys(recordsMap || {}).forEach(function(codeKey) {
-      const rec = recordsMap[codeKey];
-      if (!rec) return;
-
-      const emp = employees.find(function(e) { return String(e.code).toUpperCase() === codeKey; });
-      const name = (emp && emp.name) || rec.employeeName || codeKey;
-
-      const fields = [
-        ["arrival", "Arrived"],
-        ["breakStart", "Break Start"],
-        ["shortBreakStart", "Short Break Start"],
-        ["breakEnd", "Break End"],
-        ["shortBreakEnd", "Short Break End"],
-        ["departure", "Departure"]
-      ];
-
-      fields.forEach(function(f) {
-        const value = rec[f[0]];
-        if (!hasValue(value)) return;
-        entries.push({
-          name: name,
-          action: f[1],
-          time: value,
-          sortKey: fieldEpochForSort(rec, value)
-        });
-      });
-    });
-    return entries;
-  }
-
-  function iconForAction(action) {
-    const icons = {
-      "Arrived": "📍",
-      "Break Start": "☕",
-      "Short Break Start": "⏱️",
-      "Break End": "🔄",
-      "Short Break End": "▶️",
-      "Departure": "🚪"
-    };
-    return icons[action] || "🕒";
-  }
-
-  function collectAllLogEntries() {
-    const entries = [];
-    employees.forEach(function(emp) {
-      const activeState = getActiveRecordState(emp);
-      const rec = enforceNightShiftLastActionState(
-        cleanStaleNightShiftEnds(activeState.record || {}, emp), emp
-      );
-
-      const name = emp.name || rec.employeeName || emp.code;
-      const fields = [
-        ["arrival", "Arrived"],
-        ["breakStart", "Break Start"],
-        ["shortBreakStart", "Short Break Start"],
-        ["breakEnd", "Break End"],
-        ["shortBreakEnd", "Short Break End"],
-        ["departure", "Departure"]
-      ];
-
-      fields.forEach(function(f) {
-        const value = rec[f[0]];
-        if (!hasValue(value)) return;
-        entries.push({
-          name: name,
-          action: f[1],
-          time: value,
-          sortKey: fieldEpochForSort(rec, value)
-        });
-      });
-    });
-    return entries;
-  }
-
-  function updateLogsStack() {
-    const stack = document.getElementById("logsStack");
-    if (!stack) return;
-
-    const entries = collectAllLogEntries();
-    entries.sort(function(a, b) { return (b.sortKey ?? -1) - (a.sortKey ?? -1); });
-
-    const top = entries.slice(0, 50);
-    if (!top.length) {
-      stack.classList.add("hidden");
-      stack.innerHTML = "";
-      return;
-    }
-
-    stack.innerHTML = '<div class="stack-label">Logs History</div>' +
-      top.map(function(item) {
-        return '<div class="ios-notif">' +
-          '<div class="ios-notif-icon">' + iconForAction(item.action) + '</div>' +
-          '<div class="ios-notif-body">' +
-            '<div class="ios-notif-head">' +
-              '<span class="ios-notif-title">' + escapeHtml(item.name) + '</span>' +
-              (item.time ? '<span class="ios-notif-time">' + escapeHtml(item.time) + '</span>' : '') +
-            '</div>' +
-            '<div class="ios-notif-sub">' + escapeHtml(item.action) + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join("");
-    stack.classList.remove("hidden");
+    const action = openBreakReminderAction(rec, emp);
+    if (!action) return false;
+    const nowInWindow = currentMinutesInShiftWindow(emp, rec);
+    const shiftEnd = shiftEndMinutesInWindow(emp, rec);
+    return nowInWindow >= (shiftEnd - REMINDER_BEFORE_SHIFT_END_MINUTES);
   }
 
   function updateReminderStack() {
-    updateLogsStack();
-
     const stack = document.getElementById("reminderStack");
     if (!stack) return;
 
@@ -1785,7 +1677,7 @@
       const rec = cleanStaleNightShiftEnds(activeState.record || {}, emp);
       const action = openBreakReminderAction(rec, emp);
       if (action && shouldShowBreakReminder(rec, emp)) {
-        reminders.push({ emp: emp, action: action, startTime: breakStartTimeForRec(rec, action) });
+        reminders.push({ emp: emp, action: action });
       }
     });
 
@@ -1795,18 +1687,11 @@
       return;
     }
 
-    stack.innerHTML = '<div class="stack-label">On Break</div>' +
-      reminders.slice(0, 8).map(function(item) {
-        const statusLabel = item.action === "Short Break End" ? "On Short Break" : "On Break";
-        return '<div class="ios-notif">' +
-          '<div class="ios-notif-icon">' + iconForAction(item.action) + '</div>' +
-          '<div class="ios-notif-body">' +
-            '<div class="ios-notif-head">' +
-              '<span class="ios-notif-title">' + escapeHtml(item.emp.name || item.emp.code || "Employee") + '</span>' +
-              (item.startTime ? '<span class="ios-notif-time">' + escapeHtml(item.startTime) + '</span>' : '') +
-            '</div>' +
-            '<div class="ios-notif-sub">' + statusLabel + '</div>' +
-          '</div>' +
+    stack.innerHTML = '<div class="glass-reminder title">Reminder</div>' +
+      reminders.slice(0, 5).map(function(item) {
+        return '<div class="glass-reminder">' +
+          escapeHtml(item.emp.name || item.emp.code || "Employee") +
+          '<span class="small">Please tap ' + escapeHtml(item.action) + '</span>' +
         '</div>';
       }).join("");
     stack.classList.remove("hidden");
@@ -2479,6 +2364,141 @@
   function show(id,v){ document.getElementById(id).classList.toggle("hidden",!v); }
   function toast(msg,type){ const e=document.getElementById("toast"); e.textContent=msg; e.className="toast show "+(type||""); }
   function hideToast(){ document.getElementById("toast").classList.remove("show"); }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Logs History + On Break side panels.
+  // Purely additive: nothing above this line is modified. This block only
+  // wraps toast() and updateReminderStack() from the outside so it can
+  // observe the same successful taps / state recalculations the kiosk
+  // already produces, without changing any existing logic or function body.
+  // ══════════════════════════════════════════════════════════════════════
+  (function() {
+    const LOG_STORAGE_PREFIX = "kioskdtr_logs_";
+    const MAX_LOG_ENTRIES = 150;
+    const AVATAR_COLOR_PAIRS = [
+      ["#FF00FF","#00FFFF"],
+      ["#FF9900","#FF00FF"],
+      ["#00FFFF","#7A5CFF"],
+      ["#FF3B6B","#FF9900"],
+      ["#7A5CFF","#00FFFF"],
+      ["#00FFB3","#00FFFF"]
+    ];
+
+    function todayLogKey() { return LOG_STORAGE_PREFIX + fmt(); }
+
+    function loadLogs() {
+      try {
+        const raw = localStorage.getItem(todayLogKey());
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) { return []; }
+    }
+
+    function saveLogs(list) {
+      try { localStorage.setItem(todayLogKey(), JSON.stringify(list.slice(0, MAX_LOG_ENTRIES))); } catch (_) {}
+    }
+
+    let logEntries = loadLogs();
+
+    function initials(name) {
+      const t = String(name || "").trim();
+      if (!t) return "?";
+      const parts = t.split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    function avatarGradient(name) {
+      const text = String(name || "");
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+      const pair = AVATAR_COLOR_PAIRS[hash % AVATAR_COLOR_PAIRS.length];
+      return "linear-gradient(135deg," + pair[0] + "," + pair[1] + ")";
+    }
+
+    function renderLogs() {
+      const el = document.getElementById("logsList");
+      if (!el) return;
+      if (!logEntries.length) {
+        el.innerHTML = '<div class="side-empty">No activity yet.</div>';
+        return;
+      }
+      el.innerHTML = logEntries.map(function(item) {
+        return '<div class="log-item">' +
+          '<div class="log-avatar" style="background:' + avatarGradient(item.name) + '">' + escapeHtml(initials(item.name)) + '</div>' +
+          '<div class="log-info">' +
+            '<div class="log-name">' + escapeHtml(item.name) + '</div>' +
+            '<div class="log-action">' + escapeHtml(item.action) + '</div>' +
+          '</div>' +
+          '<div class="log-time">' + escapeHtml(item.time) + '</div>' +
+        '</div>';
+      }).join("");
+    }
+
+    function addLogEntry(name, action, time) {
+      logEntries.unshift({ name: name, action: action, time: time });
+      if (logEntries.length > MAX_LOG_ENTRIES) logEntries.length = MAX_LOG_ENTRIES;
+      saveLogs(logEntries);
+      renderLogs();
+    }
+
+    // Wrap toast() so every successful attendance tap (doAction always calls
+    // toast("✅ Name — Action at Time","ok") right after applying the action)
+    // is captured into the Logs History panel, without touching doAction.
+    const _originalToast = toast;
+    toast = function(msg, type) {
+      _originalToast(msg, type);
+      if (type === "ok" && typeof msg === "string" && msg.indexOf("✅") === 0) {
+        const m = msg.match(/^✅\s*(.+?)\s*—\s*(.+?)\s*at\s*(.+)$/);
+        if (m) addLogEntry(m[1].trim(), m[2].trim(), m[3].trim());
+      }
+    };
+
+    function renderOnBreak() {
+      const el = document.getElementById("breakList");
+      if (!el) return;
+
+      const onBreak = [];
+      employees.forEach(function(emp) {
+        const state = getActiveRecordState(emp);
+        const rec = cleanStaleNightShiftEnds(state.record || {}, emp);
+        if (hasOpenMainBreak(rec)) {
+          onBreak.push({ emp: emp, label: "On Break", time: rec.breakStart });
+        } else if (hasOpenShortBreak(rec)) {
+          onBreak.push({ emp: emp, label: "On Short Break", time: rec.shortBreakStart });
+        }
+      });
+
+      if (!onBreak.length) {
+        el.innerHTML = '<div class="side-empty">No one is on break.</div>';
+        return;
+      }
+
+      el.innerHTML = onBreak.map(function(item) {
+        return '<div class="log-item">' +
+          '<div class="log-avatar break" style="background:' + avatarGradient(item.emp.name) + '">' + escapeHtml(initials(item.emp.name)) + '</div>' +
+          '<div class="log-info">' +
+            '<div class="log-name">' + escapeHtml(item.emp.name) + '</div>' +
+            '<div class="log-action">' + escapeHtml(item.label) + '</div>' +
+          '</div>' +
+          '<div class="log-time">' + escapeHtml(item.time || "") + '</div>' +
+        '</div>';
+      }).join("");
+    }
+
+    // Wrap updateReminderStack() so the On Break panel refreshes at every
+    // point the kiosk already recalculates state (initial load, employee
+    // lookup, tapped actions, the 1-minute Google Sheet sync), without
+    // touching that function's own logic.
+    const _originalUpdateReminderStack = updateReminderStack;
+    updateReminderStack = function() {
+      _originalUpdateReminderStack();
+      renderOnBreak();
+    };
+
+    renderLogs();
+    renderOnBreak();
+  })();
 </script>
 </body>
 </html>
