@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="checkers-packaging-unlimited-breaks" content="2026-07-26-v4" />
+  <meta name="checkers-packaging-45min-arrival-break-history" content="2026-07-26-v5" />
   <title>Employee Kiosk – DTR</title>
   <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -548,7 +548,7 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     @keyframes sunPulse{from{opacity:.16;transform:translateX(-50%) scale(.96);}to{opacity:.3;transform:translateX(-50%) scale(1.05);}}
 
-    /* ── On  / Logs History side panels (glass-bubble style) ─────────── */
+    /* ── On Break / Logs History side panels (glass-bubble style) ─────────── */
     .side-panel{
       position:fixed;
       top:88px;
@@ -783,12 +783,12 @@
       <div class="emp-meta" id="eMeta"></div>
     </div>
     <div class="grid2">
-      <button class="abtn" data-a="arrival">🟢 Arrival</button>
-      <button class="abtn" data-a="breakStart">☕ Break Start</button>
-      <button class="abtn" data-a="shortBreakStart">⏱️ Short Break Start</button>
-      <button class="abtn" data-a="breakEnd">🔄 Break End</button>
-      <button class="abtn" data-a="shortBreakEnd">▶️ Short Break End</button>
-      <button class="abtn" data-a="departure">🚪 Departure</button>
+      <button class="abtn" data-a="arrival">🙎🏻‍♂️ Arrival</button>
+      <button class="abtn" data-a="breakStart">🍛 Break Start</button>
+      <button class="abtn" data-a="shortBreakStart">🍜 Short Break Start</button>
+      <button class="abtn" data-a="breakEnd">⌛ Break End</button>
+      <button class="abtn" data-a="shortBreakEnd">🛑 Short Break End</button>
+      <button class="abtn" data-a="departure">🚌 Departure</button>
     </div>
      <p class="note"></p>
   </div>
@@ -798,7 +798,7 @@
 
 <script>
   // ── YOUR APPS SCRIPT URL ─────────────────────────────────────────────────
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYRflM00_CRjvgzVn1Muy2ZktLChxROMQbiEycwUf7nAhJrlTUIG6EVngS6mfd2EDWUg/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxJ3nk-_UMsHhxY8BHu2NQS_dCrnYJ2UF7yAhUoj8X5jtuQ2EdqFyolxvagdwGrvGOL/exec";
   // ─────────────────────────────────────────────────────────────────────────
 
   let employees = [];
@@ -821,8 +821,9 @@
     : null;
   const QUICK_RESET_MS = 350;
   const AUTO_REFRESH_MS = 60 * 1000; // refresh latest employee/DTR data every 1 minute
-  const MIN_BREAK_END_MINUTES = 2; // hide end buttons until break is at least 12 minutes
+  const MIN_BREAK_END_MINUTES = 12; // hide end buttons until break is at least 12 minutes
   const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60;
+  const ARRIVAL_OPEN_BEFORE_START_MINUTES = 45;
   const DEPARTURE_OPEN_BEFORE_END_MINUTES = 2 * 60;
   const MULTI_BREAK_DEPARTMENTS = ["checker", "checkers", "packaging"];
 
@@ -878,7 +879,7 @@
       return slash[3] + "-" + String(slash[1]).padStart(2,"0") + "-" + String(slash[2]).padStart(2,"0");
     }
 
-    //  Apps Script may serialize a July 11 sheet date as
+    // Google Apps Script may serialize a July 11 sheet date as
     // 2026-07-10T20:00:00.000Z. Convert it using the kiosk's local timezone
     // instead of taking the UTC YYYY-MM-DD prefix.
     const parsed = new Date(value);
@@ -907,7 +908,7 @@
     }
 
     // Then try normalized column headers. This is important because Apps Script
-    // /  Sheet rows may return headers like "Break Start", "Short Break
+    // / Google Sheet rows may return headers like "Break Start", "Short Break
     // End", "Employee Code", or "Last Action" instead of camelCase names.
     const normalized = {};
     Object.keys(rec).forEach(function(key) {
@@ -1240,7 +1241,7 @@
 
       const timer = setTimeout(function() {
         cleanup();
-        reject(new Error(" Sheet request timed out."));
+        reject(new Error("Google Sheet request timed out."));
       }, timeoutMs);
 
       function cleanup() {
@@ -1265,7 +1266,7 @@
 
       script.onerror = function() {
         cleanup();
-        reject(new Error("Could not connect to  Sheet."));
+        reject(new Error("Could not connect to Google Sheet."));
       };
       script.src = SCRIPT_URL + "?" + query.toString();
       document.body.appendChild(script);
@@ -1279,7 +1280,7 @@
     }, 8000);
 
     if (!data || data.ok === false) {
-      throw new Error((data && data.error) || " Sheet sync returned no data.");
+      throw new Error((data && data.error) || "Google Sheet sync returned no data.");
     }
     return data;
   }
@@ -1391,7 +1392,7 @@
     if (!emp || !emp.code) return;
     const codeKey = String(emp.code).trim().toUpperCase();
 
-    // The optimistic local state is newer than  Sheet until the write is
+    // The optimistic local state is newer than Google Sheet until the write is
     // acknowledged, so do not replace it during this short period.
     if (pendingWritesByCode[codeKey]) return;
 
@@ -1429,7 +1430,7 @@
     });
   }
 
-  // ── Load employees from  Sheets ─────────────────────────────────────
+  // ── Load employees from Google Sheets ─────────────────────────────────────
   async function loadEmps(silent) {
     // Only skip if URL is literally the placeholder text.
     if (!SCRIPT_URL || SCRIPT_URL.trim() === "YOUR_APPS_SCRIPT_URL_HERE") {
@@ -1447,7 +1448,7 @@
     syncInProgress = true;
 
     // Fast start: cache is used only to display the kiosk immediately.
-    // Every normal load and every 1-minute refresh still reads  Sheet.
+    // Every normal load and every 1-minute refresh still reads Google Sheet.
     if (!silent) {
       const hasCache = loadEmployeeCache();
       show("loadCard",false);
@@ -1455,10 +1456,10 @@
       document.getElementById("empIn").focus();
 
       if (hasCache) {
-        toast("✓ Employees ready. Syncing live  Sheet data...", "ok");
+        toast("✓ Employees ready. Syncing live Google Sheet data...", "ok");
         setTimeout(hideToast, 900);
       } else {
-        toast("Syncing live  Sheet data...", "warn");
+        toast("Syncing live Google Sheet data...", "warn");
       }
     }
 
@@ -1468,7 +1469,7 @@
       let merged = null;
 
       // Preferred method: one Apps Script request returns employees plus the
-      // latest today/yesterday DTR rows from one locked  Sheet snapshot.
+      // latest today/yesterday DTR rows from one locked Google Sheet snapshot.
       try {
         const live = await fetchKioskSync(today);
         const allDtrRows = extractDtrRows(live.dtrRows || live.rows || []);
@@ -1518,7 +1519,7 @@
         };
       }
 
-      // Replace the kiosk state with the fresh  Sheet snapshot.
+      // Replace the kiosk state with the fresh Google Sheet snapshot.
       // applyEmployeeData also re-checks the employee currently entered,
       // so visible buttons change immediately after the 1-minute sync.
       applyEmployeeData(merged);
@@ -1528,19 +1529,19 @@
       if (employees.length === 0) {
         if (!silent) toast("No employees found. Add from Admin Panel first.","err");
       } else if (!silent) {
-        toast("✓ Live  Sheet data synced", "ok");
+        toast("✓ Live Google Sheet data synced", "ok");
         setTimeout(hideToast, 900);
       }
     } catch(e) {
       recordsReady = employees.length > 0;
       if (!silent && employees.length === 0) {
         if (e.name === "AbortError") {
-          toast("⏱  Sheet sync timed out. Try refreshing.","err");
+          toast("⏱ Google Sheet sync timed out. Try refreshing.","err");
         } else {
           toast("⚠ Sync error: " + e.message,"err");
         }
       } else {
-        console.warn("Live  Sheet sync failed:", e);
+        console.warn("Live Google Sheet sync failed:", e);
       }
     } finally {
       syncInProgress = false;
@@ -1554,7 +1555,7 @@
   }
   loadEmps(false);
 
-  // Read the actual  Sheet every 60 seconds. The cache is never used as
+  // Read the actual Google Sheet every 60 seconds. The cache is never used as
   // the source for this refresh. Current employee buttons and reminders are
   // recalculated from the newly downloaded DTR rows.
   setInterval(function() {
@@ -1584,7 +1585,7 @@
     }
 
     // Show the latest local state immediately; then verify this one employee
-    // directly from  Sheet without waiting for the 1-minute full refresh.
+    // directly from Google Sheet without waiting for the 1-minute full refresh.
     showEmp(emp);
     employeeLookupTimer = setTimeout(function() {
       refreshEmployeeState(emp);
@@ -1693,7 +1694,7 @@
 
       // Some old rows were saved on the calendar date after midnight. During the
       // active night shift window, treat those early-morning rows as part of the
-      // previous work date, so the button sequence still follows the  Sheet data.
+      // previous work date, so the button sequence still follows the Google Sheet data.
       const todayCandidate = hasRecordData(todayRec)
         ? Object.assign({}, todayRec, { date: workDate, previousNight: true, workDate: workDate, calendarDate: todayDateStr || fmt() })
         : null;
@@ -2202,16 +2203,37 @@
   }
 
 
-  function isShiftActiveForSpecialDepartment(emp, rec) {
+    function getSpecialDepartmentShiftStartMinutes(emp) {
+    return isNightShiftEmployee(emp) ? getNightShiftStartMinutes() : (7 * 60);
+  }
+
+  function isArrivalWindowOpenForSpecialDepartment(emp, rec) {
+    if (isDayOffScheduled(emp, rec || {})) return false;
+
     const nowMins = currentMinutes();
+    const shiftStart = getSpecialDepartmentShiftStartMinutes(emp);
+    const arrivalOpen = shiftStart - ARRIVAL_OPEN_BEFORE_START_MINUTES;
 
     if (isNightShiftEmployee(emp)) {
-      const shiftStart = getNightShiftStartMinutes();
+      const shiftEnd = getNightShiftEndMinutes(emp, rec || {});
+      return nowMins >= arrivalOpen || nowMins < shiftEnd;
+    }
+
+    const shiftEnd = getMorningShiftEndMinutes(emp, rec || {});
+    return nowMins >= arrivalOpen && nowMins < shiftEnd;
+  }
+
+  function isShiftActiveForSpecialDepartment(emp, rec) {
+    const nowMins = currentMinutes();
+    const shiftStart = getSpecialDepartmentShiftStartMinutes(emp);
+
+    if (isNightShiftEmployee(emp)) {
       const shiftEnd = getNightShiftEndMinutes(emp, rec || {});
       return nowMins >= shiftStart || nowMins < shiftEnd;
     }
 
-    return nowMins < getMorningShiftEndMinutes(emp, rec || {});
+    return nowMins >= shiftStart &&
+      nowMins < getMorningShiftEndMinutes(emp, rec || {});
   }
 
   function isDepartureWindowOpen(emp, rec) {
@@ -2230,7 +2252,7 @@
     const mainOpen = hasValue(rec.breakStart) && !hasValue(rec.breakEnd);
 
     if (!hasArrival) {
-      return isShiftActiveForSpecialDepartment(emp, rec) ? ["arrival"] : [];
+      return isArrivalWindowOpenForSpecialDepartment(emp, rec) ? ["arrival"] : [];
     }
 
     if (mainOpen) {
@@ -2267,7 +2289,7 @@
 
     if (isMorningShiftDutyFinished(emp, rec)) return [];
 
-    // Afternoon/night shift safety rule: when  Sheet says the latest
+    // Afternoon/night shift safety rule: when Google Sheet says the latest
     // action is a break start and its matching end is blank, never show either
     // start button. Only the matching End button is allowed. This applies to
     // both 8-hour and 12-hour afternoon duties.
@@ -2313,7 +2335,7 @@
 
     // Afternoon/night shift: after the schedule is finished, do not offer
     // new break starts. While still inside the same shift window, continue
-    // using the  Sheet row for that work date.
+    // using the Google Sheet row for that work date.
     if (isNightShiftClosedUntilEvening(emp, rec, mainOpen, shortOpen, mainDone, shortDone, shortAllowed)) {
       return [];
     }
@@ -2355,7 +2377,7 @@
         if (hasValue(rec.breakStart) && !hasValue(rec.breakEnd) && isBreakEndTooSoon(rec.breakStart)) {
           return "Your Break is Started.";
         }
-        if (!hasValue(rec.arrival)) return "Duty schedule is not active. Arrival is not available.";
+        if (!hasValue(rec.arrival)) return "Arrival is available 45 minutes before duty starts.";
         return "Duty schedule is finished. Attendance buttons are not available.";
       }
 
@@ -2551,8 +2573,8 @@
           isSending = false;
           return;
         }
-        if (!isShiftActiveForSpecialDepartment(emp, activeRec)) {
-          toast("⚠️ Duty schedule is not active. Arrival is not available.", "warn");
+        if (!isArrivalWindowOpenForSpecialDepartment(emp, activeRec)) {
+          toast("⚠️ Arrival is available only 45 minutes before duty starts.", "warn");
           isSending = false;
           return;
         }
