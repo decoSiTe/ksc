@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">https://github.com/
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -822,7 +822,15 @@
   const QUICK_RESET_MS = 350;
   const AUTO_REFRESH_MS = 60 * 1000; // refresh latest employee/DTR data every 1 minute
   const MIN_BREAK_END_MINUTES = 12; // hide end buttons until break is at least 12 minutes
-  const REMINDER_BEFORE_SHIFT_END_MINUTES = 6 * 60; // liquid reminder starts 4 hours before shift end
+  const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60; // liquid reminder starts 4 hours before shift end
+  const MULTI_BREAK_DEPARTMENTS = ["checkers", "packaging"]; // repeatable Break Start/End, totals accumulate
+
+  function normalizeDeptText(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+  function isMultiBreakDepartment(emp) {
+    return MULTI_BREAK_DEPARTMENTS.includes(normalizeDeptText(emp && emp.department));
+  }
 
   // Clock
   function tick() {
@@ -2268,6 +2276,7 @@
     // - 8 hrs schedule: no short break is available.
     if (mainDone) {
       if (shortAllowed && !hasShortStartRaw) return ["shortBreakStart"];
+      if (isMultiBreakDepartment(emp)) return ["breakStart"];
       if (!shortAllowed || shortDone) return [];
     }
 
@@ -2307,6 +2316,9 @@
       if (!shortAllowed && mainDone) return "Main break completed. Short break is only for 12-hour schedule.";
       return "Break records completed for today.";
     }
+    if (isMultiBreakDepartment(emp) && visibleKeys.length === 1 && visibleKeys[0] === "breakStart" && mainDone) {
+      return "Break ended. Tap Break Start again for another break, or it will total automatically at shift end.";
+    }
     if (visibleKeys.length === 1 && visibleKeys[0] === "breakEnd") return "Break Start recorded. Only Break End is available.";
     if (visibleKeys.length === 1 && visibleKeys[0] === "shortBreakEnd") return "Short Break Start recorded. Only Short Break End is available.";
     if (visibleKeys.length === 1 && visibleKeys[0] === "shortBreakStart") return "Main break completed. Only Short Break Start is available.";
@@ -2343,7 +2355,8 @@
 
     document.querySelectorAll(".abtn").forEach(function(btn) {
       const actionKey = btn.dataset.a;
-      btn.dataset.doneTime = rec[actionKey] || "";
+      const allowRepeatBreakStart = (actionKey === "breakStart") && isMultiBreakDepartment(emp);
+      btn.dataset.doneTime = (allowRepeatBreakStart ? "" : (rec[actionKey] || ""));
       btn.classList.remove("locked");
 
       if (alreadyDeparted) {
@@ -2413,7 +2426,8 @@
         return;
       }
 
-      if (b.dataset.doneTime) {
+      const allowRepeatBreakStart = (b.dataset.a === "breakStart") && isMultiBreakDepartment(currentEmp);
+      if (b.dataset.doneTime && !allowRepeatBreakStart) {
         toast(warnMsgs[b.dataset.a] + " at " + b.dataset.doneTime, "warn");
         return;
       }
@@ -2458,6 +2472,14 @@
       toast("⚠️ Duty schedule is finished. Break buttons are not available.", "warn");
       isSending = false;
       return;
+    }
+
+    if (key === "breakStart" && isMultiBreakDepartment(emp) &&
+        hasValue(activeRec.breakStart) && hasValue(activeRec.breakEnd)) {
+      // Starting a new cycle for Checkers/Packaging — clear the completed
+      // pair locally too so the kiosk doesn't flash "already recorded".
+      activeRec.breakStart = "";
+      activeRec.breakEnd = "";
     }
 
     activeRec[key] = time;
