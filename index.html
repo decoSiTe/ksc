@@ -798,7 +798,7 @@
 
 <script>
   // ── YOUR APPS SCRIPT URL ─────────────────────────────────────────────────
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMzFmREpMCZ2m9t1k0Aip4cBVswPDJe_80sUw4MioHSUSnQpp8LOLzfsM-fPkxLf4Qww/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYRflM00_CRjvgzVn1Muy2ZktLChxROMQbiEycwUf7nAhJrlTUIG6EVngS6mfd2EDWUg/exec";
   // ─────────────────────────────────────────────────────────────────────────
 
   let employees = [];
@@ -878,7 +878,7 @@
       return slash[3] + "-" + String(slash[1]).padStart(2,"0") + "-" + String(slash[2]).padStart(2,"0");
     }
 
-    // Google Apps Script may serialize a July 11 sheet date as
+    //  Apps Script may serialize a July 11 sheet date as
     // 2026-07-10T20:00:00.000Z. Convert it using the kiosk's local timezone
     // instead of taking the UTC YYYY-MM-DD prefix.
     const parsed = new Date(value);
@@ -907,7 +907,7 @@
     }
 
     // Then try normalized column headers. This is important because Apps Script
-    // / Google Sheet rows may return headers like "Break Start", "Short Break
+    // /  Sheet rows may return headers like "Break Start", "Short Break
     // End", "Employee Code", or "Last Action" instead of camelCase names.
     const normalized = {};
     Object.keys(rec).forEach(function(key) {
@@ -1240,7 +1240,7 @@
 
       const timer = setTimeout(function() {
         cleanup();
-        reject(new Error("Google Sheet request timed out."));
+        reject(new Error(" Sheet request timed out."));
       }, timeoutMs);
 
       function cleanup() {
@@ -1265,7 +1265,7 @@
 
       script.onerror = function() {
         cleanup();
-        reject(new Error("Could not connect to Google Sheet."));
+        reject(new Error("Could not connect to  Sheet."));
       };
       script.src = SCRIPT_URL + "?" + query.toString();
       document.body.appendChild(script);
@@ -1279,7 +1279,7 @@
     }, 8000);
 
     if (!data || data.ok === false) {
-      throw new Error((data && data.error) || "Google Sheet sync returned no data.");
+      throw new Error((data && data.error) || " Sheet sync returned no data.");
     }
     return data;
   }
@@ -1391,7 +1391,7 @@
     if (!emp || !emp.code) return;
     const codeKey = String(emp.code).trim().toUpperCase();
 
-    // The optimistic local state is newer than Google Sheet until the write is
+    // The optimistic local state is newer than  Sheet until the write is
     // acknowledged, so do not replace it during this short period.
     if (pendingWritesByCode[codeKey]) return;
 
@@ -1429,7 +1429,7 @@
     });
   }
 
-  // ── Load employees from Google Sheets ─────────────────────────────────────
+  // ── Load employees from  Sheets ─────────────────────────────────────
   async function loadEmps(silent) {
     // Only skip if URL is literally the placeholder text.
     if (!SCRIPT_URL || SCRIPT_URL.trim() === "YOUR_APPS_SCRIPT_URL_HERE") {
@@ -1447,7 +1447,7 @@
     syncInProgress = true;
 
     // Fast start: cache is used only to display the kiosk immediately.
-    // Every normal load and every 1-minute refresh still reads Google Sheet.
+    // Every normal load and every 1-minute refresh still reads  Sheet.
     if (!silent) {
       const hasCache = loadEmployeeCache();
       show("loadCard",false);
@@ -1455,10 +1455,10 @@
       document.getElementById("empIn").focus();
 
       if (hasCache) {
-        toast("✓ Employees ready. Syncing live Google Sheet data...", "ok");
+        toast("✓ Employees ready. Syncing live  Sheet data...", "ok");
         setTimeout(hideToast, 900);
       } else {
-        toast("Syncing live Google Sheet data...", "warn");
+        toast("Syncing live  Sheet data...", "warn");
       }
     }
 
@@ -1468,7 +1468,7 @@
       let merged = null;
 
       // Preferred method: one Apps Script request returns employees plus the
-      // latest today/yesterday DTR rows from one locked Google Sheet snapshot.
+      // latest today/yesterday DTR rows from one locked  Sheet snapshot.
       try {
         const live = await fetchKioskSync(today);
         const allDtrRows = extractDtrRows(live.dtrRows || live.rows || []);
@@ -1518,7 +1518,7 @@
         };
       }
 
-      // Replace the kiosk state with the fresh Google Sheet snapshot.
+      // Replace the kiosk state with the fresh  Sheet snapshot.
       // applyEmployeeData also re-checks the employee currently entered,
       // so visible buttons change immediately after the 1-minute sync.
       applyEmployeeData(merged);
@@ -1528,19 +1528,19 @@
       if (employees.length === 0) {
         if (!silent) toast("No employees found. Add from Admin Panel first.","err");
       } else if (!silent) {
-        toast("✓ Live Google Sheet data synced", "ok");
+        toast("✓ Live  Sheet data synced", "ok");
         setTimeout(hideToast, 900);
       }
     } catch(e) {
       recordsReady = employees.length > 0;
       if (!silent && employees.length === 0) {
         if (e.name === "AbortError") {
-          toast("⏱ Google Sheet sync timed out. Try refreshing.","err");
+          toast("⏱  Sheet sync timed out. Try refreshing.","err");
         } else {
           toast("⚠ Sync error: " + e.message,"err");
         }
       } else {
-        console.warn("Live Google Sheet sync failed:", e);
+        console.warn("Live  Sheet sync failed:", e);
       }
     } finally {
       syncInProgress = false;
@@ -1554,7 +1554,7 @@
   }
   loadEmps(false);
 
-  // Read the actual Google Sheet every 60 seconds. The cache is never used as
+  // Read the actual  Sheet every 60 seconds. The cache is never used as
   // the source for this refresh. Current employee buttons and reminders are
   // recalculated from the newly downloaded DTR rows.
   setInterval(function() {
@@ -1584,7 +1584,7 @@
     }
 
     // Show the latest local state immediately; then verify this one employee
-    // directly from Google Sheet without waiting for the 1-minute full refresh.
+    // directly from  Sheet without waiting for the 1-minute full refresh.
     showEmp(emp);
     employeeLookupTimer = setTimeout(function() {
       refreshEmployeeState(emp);
@@ -1693,7 +1693,7 @@
 
       // Some old rows were saved on the calendar date after midnight. During the
       // active night shift window, treat those early-morning rows as part of the
-      // previous work date, so the button sequence still follows the Google Sheet data.
+      // previous work date, so the button sequence still follows the  Sheet data.
       const todayCandidate = hasRecordData(todayRec)
         ? Object.assign({}, todayRec, { date: workDate, previousNight: true, workDate: workDate, calendarDate: todayDateStr || fmt() })
         : null;
@@ -2267,7 +2267,7 @@
 
     if (isMorningShiftDutyFinished(emp, rec)) return [];
 
-    // Afternoon/night shift safety rule: when Google Sheet says the latest
+    // Afternoon/night shift safety rule: when  Sheet says the latest
     // action is a break start and its matching end is blank, never show either
     // start button. Only the matching End button is allowed. This applies to
     // both 8-hour and 12-hour afternoon duties.
@@ -2313,7 +2313,7 @@
 
     // Afternoon/night shift: after the schedule is finished, do not offer
     // new break starts. While still inside the same shift window, continue
-    // using the Google Sheet row for that work date.
+    // using the  Sheet row for that work date.
     if (isNightShiftClosedUntilEvening(emp, rec, mainOpen, shortOpen, mainDone, shortDone, shortAllowed)) {
       return [];
     }
