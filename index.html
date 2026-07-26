@@ -548,7 +548,7 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     @keyframes sunPulse{from{opacity:.16;transform:translateX(-50%) scale(.96);}to{opacity:.3;transform:translateX(-50%) scale(1.05);}}
 
-    /* ── On Break / Logs History side panels (glass-bubble style) ─────────── */
+    /* ── On  / Logs History side panels (glass-bubble style) ─────────── */
     .side-panel{
       position:fixed;
       top:88px;
@@ -821,7 +821,7 @@
     : null;
   const QUICK_RESET_MS = 350;
   const AUTO_REFRESH_MS = 60 * 1000; // refresh latest employee/DTR data every 1 minute
-  const MIN_BREAK_END_MINUTES = 12; // hide end buttons until break is at least 12 minutes
+  const MIN_BREAK_END_MINUTES = 2; // hide end buttons until break is at least 12 minutes
   const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60;
   const DEPARTURE_OPEN_BEFORE_END_MINUTES = 2 * 60;
   const MULTI_BREAK_DEPARTMENTS = ["checker", "checkers", "packaging"];
