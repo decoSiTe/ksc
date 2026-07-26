@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="onbreak-reminder-spacing-scroll" content="2026-07-25-v3" />
+  <meta name="checkers-packaging-unlimited-breaks" content="2026-07-26-v4" />
   <title>Employee Kiosk – DTR</title>
   <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -783,12 +783,12 @@
       <div class="emp-meta" id="eMeta"></div>
     </div>
     <div class="grid2">
-     
+      <button class="abtn" data-a="arrival">🟢 Arrival</button>
       <button class="abtn" data-a="breakStart">☕ Break Start</button>
       <button class="abtn" data-a="shortBreakStart">⏱️ Short Break Start</button>
       <button class="abtn" data-a="breakEnd">🔄 Break End</button>
       <button class="abtn" data-a="shortBreakEnd">▶️ Short Break End</button>
-
+      <button class="abtn" data-a="departure">🚪 Departure</button>
     </div>
      <p class="note"></p>
   </div>
@@ -798,7 +798,7 @@
 
 <script>
   // ── YOUR APPS SCRIPT URL ─────────────────────────────────────────────────
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYRflM00_CRjvgzVn1Muy2ZktLChxROMQbiEycwUf7nAhJrlTUIG6EVngS6mfd2EDWUg/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMzFmREpMCZ2m9t1k0Aip4cBVswPDJe_80sUw4MioHSUSnQpp8LOLzfsM-fPkxLf4Qww/exec";
   // ─────────────────────────────────────────────────────────────────────────
 
   let employees = [];
@@ -821,15 +821,22 @@
     : null;
   const QUICK_RESET_MS = 350;
   const AUTO_REFRESH_MS = 60 * 1000; // refresh latest employee/DTR data every 1 minute
-  const MIN_BREAK_END_MINUTES = 2; // hide end buttons until break is at least 12 minutes
-  const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60; // liquid reminder starts 4 hours before shift end
-  const MULTI_BREAK_DEPARTMENTS = ["checkers", "packaging"]; // repeatable Break Start/End, totals accumulate
+  const MIN_BREAK_END_MINUTES = 12; // hide end buttons until break is at least 12 minutes
+  const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60;
+  const DEPARTURE_OPEN_BEFORE_END_MINUTES = 2 * 60;
+  const MULTI_BREAK_DEPARTMENTS = ["checker", "checkers", "packaging"];
 
   function normalizeDeptText(value) {
     return String(value || "").trim().toLowerCase();
   }
+
   function isMultiBreakDepartment(emp) {
-    return MULTI_BREAK_DEPARTMENTS.includes(normalizeDeptText(emp && emp.department));
+    const department = normalizeDeptText(emp && emp.department);
+    return MULTI_BREAK_DEPARTMENTS.some(function(name) {
+      return department === name ||
+        department.indexOf(name + " ") === 0 ||
+        department.indexOf(" " + name) !== -1;
+    });
   }
 
   // Clock
@@ -2194,6 +2201,48 @@
     return cleaned;
   }
 
+
+  function isShiftActiveForSpecialDepartment(emp, rec) {
+    const nowMins = currentMinutes();
+
+    if (isNightShiftEmployee(emp)) {
+      const shiftStart = getNightShiftStartMinutes();
+      const shiftEnd = getNightShiftEndMinutes(emp, rec || {});
+      return nowMins >= shiftStart || nowMins < shiftEnd;
+    }
+
+    return nowMins < getMorningShiftEndMinutes(emp, rec || {});
+  }
+
+  function isDepartureWindowOpen(emp, rec) {
+    const nowInWindow = currentMinutesInShiftWindow(emp, rec || {});
+    const shiftEnd = shiftEndMinutesInWindow(emp, rec || {});
+    return nowInWindow >= (shiftEnd - DEPARTURE_OPEN_BEFORE_END_MINUTES) &&
+      nowInWindow <= shiftEnd;
+  }
+
+  function getMultiBreakVisibleActions(rec, emp) {
+    rec = rec || {};
+
+    if (isDayOffScheduled(emp, rec) || isDepartureRecorded(rec)) return [];
+
+    const hasArrival = hasValue(rec.arrival);
+    const mainOpen = hasValue(rec.breakStart) && !hasValue(rec.breakEnd);
+
+    if (!hasArrival) {
+      return isShiftActiveForSpecialDepartment(emp, rec) ? ["arrival"] : [];
+    }
+
+    if (mainOpen) {
+      return isBreakEndTooSoon(rec.breakStart) ? [] : ["breakEnd"];
+    }
+
+    const actions = [];
+    if (isShiftActiveForSpecialDepartment(emp, rec)) actions.push("breakStart");
+    if (isDepartureWindowOpen(emp, rec)) actions.push("departure");
+    return actions;
+  }
+
   function setVisibleActions(visibleKeys) {
     visibleKeys = visibleKeys || [];
     const visible = new Set(visibleKeys);
@@ -2211,6 +2260,11 @@
     rec = rec || {};
 
     if (isDayOffScheduled(emp, rec)) return [];
+
+    if (isMultiBreakDepartment(emp)) {
+      return getMultiBreakVisibleActions(rec, emp);
+    }
+
     if (isMorningShiftDutyFinished(emp, rec)) return [];
 
     // Afternoon/night shift safety rule: when Google Sheet says the latest
@@ -2291,6 +2345,31 @@
   }
 
   function actionInstruction(rec, visibleKeys, emp) {
+    if (isMultiBreakDepartment(emp)) {
+      rec = rec || {};
+
+      if (isDepartureRecorded(rec)) return "Attendance completed for today.";
+
+      if (!visibleKeys.length) {
+        if (isDayOffScheduled(emp, rec)) return "Day off. Attendance buttons are not available.";
+        if (hasValue(rec.breakStart) && !hasValue(rec.breakEnd) && isBreakEndTooSoon(rec.breakStart)) {
+          return "Your Break is Started.";
+        }
+        if (!hasValue(rec.arrival)) return "Duty schedule is not active. Arrival is not available.";
+        return "Duty schedule is finished. Attendance buttons are not available.";
+      }
+
+      if (visibleKeys.length === 1 && visibleKeys[0] === "arrival") return "Tap Arrival to start duty.";
+      if (visibleKeys.length === 1 && visibleKeys[0] === "breakEnd") return "Break Start recorded. Only Break End is available.";
+      if (visibleKeys.includes("departure") && visibleKeys.includes("breakStart")) {
+        return "You may start another break or tap Departure. Departure is available during the final 2 hours of duty.";
+      }
+      if (visibleKeys.length === 1 && visibleKeys[0] === "breakStart") {
+        return "Tap Break Start. Break Start and Break End can be used repeatedly.";
+      }
+      if (visibleKeys.length === 1 && visibleKeys[0] === "departure") return "Departure is now available.";
+    }
+
     const scheduledHours = getScheduledHours(emp, rec || {});
     const shortAllowed = scheduledHours === 12 || (scheduledHours === null && isShortBreakAllowed(emp, rec || {}));
     const hasBreakStart = hasValue((rec || {}).breakStart);
@@ -2315,9 +2394,6 @@
       }
       if (!shortAllowed && mainDone) return "Main break completed. Short break is only for 12-hour schedule.";
       return "Break records completed for today.";
-    }
-    if (isMultiBreakDepartment(emp) && visibleKeys.length === 1 && visibleKeys[0] === "breakStart" && mainDone) {
-      return "Break ended. Tap Break Start again for another break, or it will total automatically at shift end.";
     }
     if (visibleKeys.length === 1 && visibleKeys[0] === "breakEnd") return "Break Start recorded. Only Break End is available.";
     if (visibleKeys.length === 1 && visibleKeys[0] === "shortBreakEnd") return "Short Break Start recorded. Only Short Break End is available.";
@@ -2397,7 +2473,7 @@
 
   // ── Action buttons ────────────────────────────────────────────────────────
   const labels = {
-    arrival:"Arrived",
+    arrival:"Arrival",
     breakStart:"Break Start",
     shortBreakStart:"Short Break Start",
     breakEnd:"Break End",
@@ -2405,7 +2481,7 @@
     departure:"Departure"
   };
   const warnMsgs = {
-    arrival:         "⚠️ Arrived already recorded",
+    arrival:         "⚠️ Arrival already recorded",
     breakStart:      "⚠️ Break Start already recorded",
     shortBreakStart: "⚠️ Short Break Start already recorded",
     breakEnd:        "⚠️ Break End already recorded",
@@ -2468,7 +2544,43 @@
       return;
     }
 
-    if (isMorningShiftDutyFinished(emp, activeRec)) {
+    if (isMultiBreakDepartment(emp)) {
+      if (key === "arrival") {
+        if (hasValue(activeRec.arrival)) {
+          toast("⚠️ Arrival already recorded at " + activeRec.arrival, "warn");
+          isSending = false;
+          return;
+        }
+        if (!isShiftActiveForSpecialDepartment(emp, activeRec)) {
+          toast("⚠️ Duty schedule is not active. Arrival is not available.", "warn");
+          isSending = false;
+          return;
+        }
+      } else if (!hasValue(activeRec.arrival)) {
+        toast("⚠️ Please record Arrival first.", "warn");
+        isSending = false;
+        return;
+      }
+
+      if (key === "breakStart" && !isShiftActiveForSpecialDepartment(emp, activeRec)) {
+        toast("⚠️ Duty schedule is finished. Break Start is not available.", "warn");
+        isSending = false;
+        return;
+      }
+
+      if (key === "departure") {
+        if (hasValue(activeRec.breakStart) && !hasValue(activeRec.breakEnd)) {
+          toast("⚠️ Please tap Break End before Departure.", "warn");
+          isSending = false;
+          return;
+        }
+        if (!isDepartureWindowOpen(emp, activeRec)) {
+          toast("⚠️ Departure is available only during the final 2 hours of duty.", "warn");
+          isSending = false;
+          return;
+        }
+      }
+    } else if (isMorningShiftDutyFinished(emp, activeRec)) {
       toast("⚠️ Duty schedule is finished. Break buttons are not available.", "warn");
       isSending = false;
       return;
