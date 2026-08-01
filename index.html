@@ -2431,11 +2431,14 @@
       emp.code + " · " + (emp.department||"") + " · " + (emp.position||"");
 
     const codeKey = String(emp.code).toUpperCase();
-    const activeState = getActiveRecordState(emp);
-    const rec = enforceNightShiftLastActionState(
-      cleanStaleNightShiftEnds(activeState.record || {}, emp), emp
-    );
-    saveActiveRecordState(emp, rec, activeState);
+const activeState = getActiveRecordState(emp);
+const rawRec = enforceNightShiftLastActionState(Object.assign({}, activeState.record || {}), emp);
+const rec = cleanStaleNightShiftEnds(rawRec, emp);
+// `rec` may be intentionally blanked here to hide a completed previous-night
+// break from the button logic below — that's fine for THIS render, but it must
+// never be persisted, or it permanently erases real break times from the
+// shared cache that Logs History and On Break also read from.
+saveActiveRecordState(emp, rawRec, activeState);
 
     if (!recordsReady) {
       setVisibleActions([]);
@@ -2515,11 +2518,10 @@
     b.addEventListener("click", function() {
       if (isSending || b.disabled) return;
 
-      const codeKey = currentEmp ? String(currentEmp.code).toUpperCase() : "";
-      const activeState = getActiveRecordState(currentEmp);
-      const rec = cleanStaleNightShiftEnds(activeState.record || {}, currentEmp);
-      saveActiveRecordState(currentEmp, rec, activeState);
-      if (isDepartureRecorded(rec)) {
+     const activeState = getActiveRecordState(currentEmp);
+const rec = cleanStaleNightShiftEnds(activeState.record || {}, currentEmp);
+// Read-only check — do not persist this cleaned snapshot back to cache.
+if (isDepartureRecorded(rec)) {
         lockDepartedEmployee(currentEmp, rec.departure || "");
         return;
       }
@@ -2552,15 +2554,18 @@
     const emp = currentEmp;
     const now = new Date(), calendarDate=fmt(now), time=fmtT(now), ts=now.toISOString();
 
-    const codeKey = String(emp.code).toUpperCase();
-    const activeState = getActiveRecordState(emp);
-    const workDate = activeState.date || calendarDate;
-    const activeRec = enforceNightShiftLastActionState(
-      cleanStaleNightShiftEnds(activeState.record || {}, emp), emp
-    );
-    saveActiveRecordState(emp, activeRec, activeState);
+   const codeKey = String(emp.code).toUpperCase();
+const activeState = getActiveRecordState(emp);
+const workDate = activeState.date || calendarDate;
+// Build from the RAW record, not cleanStaleNightShiftEnds(): that helper can
+// return a blank object on purpose to hide a completed previous-night break
+// from button logic, and saving that blank object here would wipe out real
+// break history the moment a new action is taken.
+const activeRec = enforceNightShiftLastActionState(
+  Object.assign({}, activeState.record || {}), emp
+);
 
-    if (isDayOffScheduled(emp, activeRec)) {
+if (isDayOffScheduled(emp, activeRec)) {
       toast("⚠️ Day off. Break buttons are not available.", "warn");
       isSending = false;
       return;
