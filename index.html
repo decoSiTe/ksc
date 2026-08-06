@@ -1,2906 +1,550 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="checkers-packaging-separate-break-records" content="2026-07-28-v6" />
-  <title>Employee Kiosk – DTR</title>
-  <!-- QR scanner library is loaded only when Scan QR Code is tapped for faster kiosk startup. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:#090014;
-      --void:#090014;
-      --card:rgba(26,16,60,.86);
-      --card-strong:rgba(8,2,24,.92);
-      --text:#E0E0E0;
-      --muted:rgba(224,224,224,.68);
-      --magenta:#FF00FF;
-      --cyan:#00FFFF;
-      --orange:#FF9900;
-      --border:#2D1B4E;
-      --soft:rgba(0,255,255,.08);
-      --shadow:0 0 30px rgba(0,255,255,.18), 0 0 60px rgba(255,0,255,.12);
-      --radius:0;
-    }
-
-    *{box-sizing:border-box;margin:0;padding:0;}
-
-    html,body{min-height:100%;}
-
-    body{
-      font-family:"Share Tech Mono", monospace;
-      background:
-        radial-gradient(circle at 20% 15%, rgba(255,0,255,.22), transparent 28%),
-        radial-gradient(circle at 85% 10%, rgba(0,255,255,.16), transparent 26%),
-        linear-gradient(180deg,#090014 0%,#120024 52%,#05000d 100%);
-      color:var(--text);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-      overflow:hidden;
-      position:relative;
-    }
-
-    .vapor-bg{
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      overflow:hidden;
-      z-index:0;
-    }
-
-    .vapor-bg::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:
-        radial-gradient(circle, rgba(255,0,255,.42) 1px, transparent 1.5px);
-      background-size:26px 26px;
-      opacity:.18;
-      mask-image:linear-gradient(to bottom, transparent 0%, black 22%, transparent 78%);
-    }
-
-    .sun{
-      position:absolute;
-      width:520px;
-      height:520px;
-      border-radius:50%;
-      left:50%;
-      top:8%;
-      transform:translateX(-50%);
-      background:linear-gradient(to bottom,var(--orange),var(--magenta));
-      filter:blur(92px);
-      opacity:.22;
-      animation:sunPulse 5s linear infinite alternate;
-    }
-
-    .grid-floor{
-      position:absolute;
-      left:-30%;
-      right:-30%;
-      bottom:-22%;
-      height:54%;
-      background-image:
-        linear-gradient(transparent 94%, rgba(255,0,255,.85) 95%),
-        linear-gradient(90deg, transparent 94%, rgba(0,255,255,.7) 95%);
-      background-size:44px 44px;
-      transform:perspective(520px) rotateX(62deg) translateY(10px) scale(1.25);
-      transform-origin:top center;
-      opacity:.32;
-      mask-image:linear-gradient(to bottom, transparent, black 22%, transparent 92%);
-    }
-
-    .scanlines{
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      z-index:50;
-      background:
-        linear-gradient(rgba(18,16,20,0) 50%, rgba(0,0,0,.28) 50%),
-        linear-gradient(90deg, rgba(255,0,0,.045), rgba(0,255,0,.012), rgba(0,0,255,.045));
-      background-size:100% 4px, 100% 100%;
-      mix-blend-mode:screen;
-      opacity:.35;
-    }
-
-    .wrap{
-      width:100%;
-      max-width:480px;
-      position:relative;
-      z-index:2;
-    }
-
-    .header{
-      text-align:center;
-      margin-bottom:18px;
-      position:relative;
-    }
-
-    .header::before{
-      content:"> SYSTEM ONLINE";
-      display:inline-block;
-      color:var(--cyan);
-      font-size:11px;
-      letter-spacing:3px;
-      text-shadow:0 0 10px var(--cyan);
-      margin-bottom:8px;
-    }
-
-    .header h1{
-      font-family:"Orbitron", sans-serif;
-      font-size:26px;
-      line-height:1.05;
-      font-weight:900;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      background:linear-gradient(to right,var(--orange),var(--magenta),var(--cyan));
-      -webkit-background-clip:text;
-      background-clip:text;
-      color:transparent;
-      filter:drop-shadow(0 0 18px rgba(255,0,255,.65));
-    }
-
-    .header p{
-      color:var(--muted);
-      font-size:12px;
-      margin-top:7px;
-      text-transform:uppercase;
-      letter-spacing:1.5px;
-    }
-
-    .clock{
-      text-align:center;
-      font-family:"Orbitron", sans-serif;
-      font-size:44px;
-      font-weight:900;
-      letter-spacing:4px;
-      color:#fff;
-      text-shadow:
-        0 0 8px rgba(255,255,255,.65),
-        0 0 24px rgba(0,255,255,.55),
-        0 0 44px rgba(255,0,255,.36);
-    }
-
-    .date-disp{
-      text-align:center;
-      color:var(--cyan);
-      font-size:12px;
-      margin:5px 0 18px;
-      text-transform:uppercase;
-      letter-spacing:1.4px;
-      text-shadow:0 0 10px rgba(0,255,255,.5);
-    }
-
-    .card{
-      position:relative;
-      background:var(--card);
-      border:1px solid rgba(255,0,255,.38);
-      border-top:2px solid var(--cyan);
-      border-radius:0;
-      box-shadow:var(--shadow);
-      padding:20px;
-      margin-bottom:14px;
-      backdrop-filter:blur(14px);
-    }
-
-    .card::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      border-left:1px solid rgba(0,255,255,.25);
-      border-right:1px solid rgba(255,0,255,.25);
-    }
-
-    .card h3{
-      font-family:"Orbitron", sans-serif;
-      font-size:14px;
-      margin-bottom:7px;
-      color:var(--cyan);
-      text-transform:uppercase;
-      letter-spacing:1px;
-      text-shadow:0 0 8px rgba(0,255,255,.72);
-    }
-
-    .desc{
-      color:var(--muted);
-      font-size:12px;
-      margin-bottom:12px;
-      line-height:1.45;
-    }
-
-    input{
-      width:100%;
-      padding:14px 12px;
-      border-radius:0;
-      border:0;
-      border-bottom:2px solid var(--magenta);
-      font-family:"Share Tech Mono", monospace;
-      font-size:24px;
-      font-weight:400;
-      letter-spacing:4px;
-      text-align:center;
-      outline:none;
-      background:rgba(0,0,0,.72);
-      color:var(--cyan);
-      text-shadow:0 0 8px rgba(0,255,255,.8);
-      box-shadow:inset 0 0 18px rgba(255,0,255,.12);
-      transition:all .18s linear;
-    }
-
-    input::placeholder{
-      color:rgba(255,0,255,.42);
-      font-size:14px;
-      letter-spacing:1px;
-      text-shadow:none;
-    }
-
-    input:focus{
-      border-bottom-color:var(--cyan);
-      background:#03000a;
-      box-shadow:0 0 16px rgba(0,255,255,.55), inset 0 0 22px rgba(0,255,255,.08);
-    }
-
-    .btn{
-      width:100%;
-      padding:13px;
-      border-radius:0;
-      border:2px solid var(--cyan);
-      background:transparent;
-      color:var(--cyan);
-      font-family:"Share Tech Mono", monospace;
-      font-size:13px;
-      font-weight:700;
-      letter-spacing:1.5px;
-      text-transform:uppercase;
-      cursor:pointer;
-      margin-top:10px;
-      transform:skewX(-8deg);
-      transition:all .18s linear;
-      box-shadow:0 0 12px rgba(0,255,255,.18);
-    }
-
-    .btn:hover{
-      background:var(--cyan);
-      color:#000;
-      transform:skewX(0deg) scale(1.02);
-      box-shadow:0 0 24px var(--cyan),0 0 44px rgba(0,255,255,.35);
-    }
-
-    .btn.sec{
-      background:rgba(255,0,255,.08);
-      color:var(--magenta);
-      border-color:var(--magenta);
-      box-shadow:0 0 12px rgba(255,0,255,.18);
-    }
-
-    .btn.sec:hover{
-      background:var(--magenta);
-      color:#fff;
-      box-shadow:0 0 24px var(--magenta),0 0 44px rgba(255,0,255,.35);
-    }
-
-    .emp-card{
-      background:rgba(0,0,0,.48);
-      border:1px solid rgba(0,255,255,.35);
-      border-left:3px solid var(--magenta);
-      border-radius:0;
-      padding:15px;
-      text-align:center;
-      margin-bottom:14px;
-      box-shadow:inset 0 0 20px rgba(0,255,255,.07);
-    }
-
-    .emp-name{
-      font-family:"Orbitron", sans-serif;
-      font-size:22px;
-      font-weight:800;
-      color:#fff;
-      text-transform:uppercase;
-      text-shadow:0 0 12px rgba(255,0,255,.7);
-    }
-
-    .emp-meta{
-      color:var(--cyan);
-      font-size:12px;
-      margin-top:6px;
-      letter-spacing:1px;
-      text-transform:uppercase;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .grid2.single-action{
-      grid-template-columns:1fr;
-      justify-items:center;
-    }
-
-    .grid2.single-action .abtn{
-      width:58%;
-      min-width:220px;
-    }
-
-    .abtn{
-      min-height:58px;
-      padding:14px 10px;
-      border-radius:0;
-      border:2px solid rgba(255,0,255,.78);
-      background:linear-gradient(135deg,rgba(255,0,255,.18),rgba(0,255,255,.08));
-      color:#fff;
-      font-family:"Share Tech Mono", monospace;
-      font-size:13px;
-      font-weight:700;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      cursor:pointer;
-      transition:all .16s linear;
-      box-shadow:0 0 14px rgba(255,0,255,.2);
-      position:relative;
-      overflow:hidden;
-    }
-
-    .abtn::before{
-      content:"";
-      position:absolute;
-      left:-80%;
-      top:0;
-      width:60%;
-      height:100%;
-      background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);
-      transform:skewX(-18deg);
-      transition:left .28s linear;
-    }
-
-    .abtn:hover{
-      border-color:var(--cyan);
-      color:#000;
-      background:var(--cyan);
-      transform:translateY(-2px);
-      box-shadow:0 0 22px var(--cyan),0 0 40px rgba(0,255,255,.32);
-    }
-
-    .abtn:hover::before{left:120%;}
-
-    .abtn:active{transform:scale(.97);}
-
-    .abtn:disabled,
-    .abtn.locked{
-      opacity:.38 !important;
-      cursor:not-allowed !important;
-      pointer-events:none;
-      filter:grayscale(.35);
-      border-color:rgba(224,224,224,.24) !important;
-      color:rgba(224,224,224,.65) !important;
-      background:rgba(0,0,0,.42) !important;
-      box-shadow:none !important;
-      transform:none !important;
-    }
-
-    .note{
-      text-align:center;
-      color:var(--muted);
-      font-size:11px;
-      margin-top:12px;
-      text-transform:uppercase;
-      letter-spacing:1px;
-    }
-
-    .toast{
-      padding:13px 16px;
-      border-radius:0;
-      font-size:13px;
-      text-align:center;
-      display:none;
-      margin-top:0;
-      border:1px solid rgba(224,224,224,.18);
-      background:var(--card-strong);
-      box-shadow:0 0 18px rgba(255,0,255,.18);
-      text-transform:uppercase;
-      letter-spacing:.8px;
-      line-height:1.35;
-    }
-
-    .toast.show{display:block;}
-    .toast.ok{border-color:#00ff88;color:#00ff88;box-shadow:0 0 18px rgba(0,255,136,.22);}
-    .toast.err{border-color:#ff3b6b;color:#ff6a8b;box-shadow:0 0 18px rgba(255,0,80,.22);}
-    .toast.warn{border-color:var(--orange);color:#ffd166;box-shadow:0 0 18px rgba(255,153,0,.22);}
-
-    .reminder-stack{
-      position:fixed;
-      left:24px;
-      top:88px;
-      z-index:5;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      width:280px;
-      max-height:190px;
-      overflow-y:auto;
-      overscroll-behavior:contain;
-      padding:0 4px 4px;
-      pointer-events:auto;
-      scrollbar-width:none;
-      -ms-overflow-style:none;
-      background:transparent;
-      border:0;
-      border-radius:0;
-      box-shadow:none;
-      backdrop-filter:none;
-      -webkit-backdrop-filter:none;
-    }
-
-    .reminder-stack::-webkit-scrollbar{
-      width:0;
-      height:0;
-      display:none;
-    }
-
-    .reminder-stack .reminder-title{
-      position:sticky;
-      top:0;
-      z-index:3;
-      width:100%;
-      margin:0 0 4px;
-      padding:0 0 5px;
-      border:0;
-      background:transparent;
-      box-shadow:none;
-      text-align:center;
-      font-family:"Orbitron", sans-serif;
-      font-size:13px;
-      font-weight:800;
-      letter-spacing:2px;
-      text-transform:uppercase;
-      color:var(--cyan);
-      text-shadow:0 0 10px rgba(0,255,255,.7);
-      flex-shrink:0;
-    }
-
-    .reminder-stack .reminder-item{
-      width:100%;
-      min-height:54px;
-      pointer-events:auto;
-      flex-shrink:0;
-    }
-
-    .glass-reminder{
-      position:relative;
-      overflow:hidden;
-      border-radius:999px;
-      padding:12px 18px;
-      min-height:44px;
-      color:#061022;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.82), rgba(210,226,255,.56)),
-        radial-gradient(circle at 20% 12%, rgba(255,255,255,.95), transparent 40%);
-      border:1px solid rgba(255,255,255,.72);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.92),
-        inset 0 -12px 24px rgba(20,30,60,.16),
-        0 12px 30px rgba(0,0,0,.24),
-        0 0 26px rgba(0,255,255,.16);
-      backdrop-filter:blur(18px) saturate(1.35);
-      -webkit-backdrop-filter:blur(18px) saturate(1.35);
-      font-family:Arial, sans-serif;
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.2px;
-      text-transform:none;
-      text-align:center;
-    }
-
-    .glass-reminder::before{
-      content:"";
-      position:absolute;
-      inset:2px 12px auto 12px;
-      height:38%;
-      border-radius:999px;
-      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.08));
-      opacity:.72;
-      pointer-events:none;
-    }
-
-    .glass-reminder.title{
-      font-size:20px;
-      font-weight:500;
-      padding:9px 18px;
-      color:#0b1020;
-    }
-
-    .glass-reminder .small{
-      display:block;
-      margin-top:3px;
-      font-size:10px;
-      font-weight:700;
-      color:rgba(6,16,34,.72);
-      text-transform:uppercase;
-      letter-spacing:.8px;
-    }
-
-    .hidden{display:none!important;}
-    .hidden-action{display:none!important;}
-
-    #reader{
-      border-radius:0;
-      overflow:hidden;
-      margin-top:12px;
-      border:2px solid var(--cyan);
-      box-shadow:0 0 18px rgba(0,255,255,.3);
-      background:#000;
-    }
-
-    .spin{
-      display:inline-block;
-      animation:spin 1s linear infinite;
-      color:var(--cyan);
-      text-shadow:0 0 10px var(--cyan);
-    }
-
-    @keyframes spin{to{transform:rotate(360deg);}}
-    @keyframes sunPulse{from{opacity:.16;transform:translateX(-50%) scale(.96);}to{opacity:.3;transform:translateX(-50%) scale(1.05);}}
-
-    /* ── On Break / Logs History side panels (glass-bubble style) ─────────── */
-    .side-panel{
-      position:fixed;
-      top:88px;
-      bottom:24px;
-      width:280px;
-      z-index:3;
-      display:flex;
-      flex-direction:column;
-      padding:0 10px;
-      background:transparent;
-      border:0;
-      border-radius:0;
-      box-shadow:none;
-      backdrop-filter:none;
-      -webkit-backdrop-filter:none;
-      pointer-events:none;
-    }
-
-    .side-panel.break-panel{
-      left:24px;
-      top:88px;
-    }
-    .side-panel.logs-panel{right:24px;}
-
-    .side-panel-title{
-      width:100%;
-      font-family:"Orbitron", sans-serif;
-      font-size:13px;
-      font-weight:800;
-      letter-spacing:2px;
-      text-transform:uppercase;
-      color:var(--cyan);
-      text-shadow:0 0 10px rgba(0,255,255,.7);
-      margin:0 0 14px;
-      padding:0;
-      border:0;
-      text-align:center;
-      flex-shrink:0;
-    }
-
-    .side-panel.break-panel .side-panel-title{
-      display:block;
-      color:var(--cyan);
-      text-align:center;
-      background:transparent;
-      border:0;
-      box-shadow:none;
-    }
-
-    .side-panel-list{
-      overflow-y:auto;
-      overscroll-behavior:contain;
-      flex:1;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      scrollbar-width:none;
-      -ms-overflow-style:none;
-      background:transparent;
-      border:0;
-      box-shadow:none;
-      padding:0;
-      pointer-events:auto;
-    }
-
-    .side-panel-list::-webkit-scrollbar{width:0;height:0;display:none;}
-
-    .side-empty{
-      color:var(--muted);
-      font-size:11px;
-      text-align:center;
-      text-transform:uppercase;
-      letter-spacing:1px;
-      padding:18px 4px;
-    }
-
-    .log-item{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:16px;
-      background:
-        linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.14),
-        0 4px 14px rgba(0,0,0,.28);
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-      flex-shrink:0;
-    }
-
-    .log-avatar{
-      width:34px;
-      height:34px;
-      min-width:34px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-family:"Orbitron", sans-serif;
-      font-weight:800;
-      font-size:14px;
-      color:#fff;
-      background:linear-gradient(135deg,var(--magenta),var(--cyan));
-      box-shadow:0 0 10px rgba(255,0,255,.35), inset 0 1px 0 rgba(255,255,255,.35);
-    }
-
-    .log-avatar.break{
-      background:linear-gradient(135deg,var(--orange),var(--magenta));
-      box-shadow:0 0 10px rgba(255,153,0,.4), inset 0 1px 0 rgba(255,255,255,.35);
-    }
-
-    .log-info{
-      flex:1;
-      min-width:0;
-    }
-
-    .log-name{
-      font-family:Arial, sans-serif;
-      font-size:12.5px;
-      font-weight:800;
-      color:#fff;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      letter-spacing:.2px;
-    }
-
-    .log-action{
-      font-size:10.5px;
-      color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.6px;
-      margin-top:2px;
-    }
-
-    .log-time{
-      font-family:"Share Tech Mono", monospace;
-      font-size:11px;
-      color:var(--cyan);
-      text-shadow:0 0 6px rgba(0,255,255,.5);
-      flex-shrink:0;
-      padding-left:6px;
-    }
-
-    @media (max-width:1400px){
-      .side-panel{display:none;}
-    }
-
-    @media (max-width:520px){
-      body{padding:14px;}
-      .wrap{max-width:100%;}
-      .clock{font-size:36px;letter-spacing:3px;}
-      .header h1{font-size:22px;}
-      .card{padding:16px;}
-      .grid2{gap:8px;}
-      .grid2.single-action .abtn{width:100%;min-width:0;}
-      .abtn{font-size:12px;min-height:54px;padding:12px 8px;}
-      .reminder-stack{
-        left:50%;
-        right:auto;
-        top:76px;
-        bottom:auto;
-        width:min(320px, calc(100vw - 28px));
-        transform:translateX(-50%);
-        max-height:150px;
-      }
-      .glass-reminder.title{font-size:16px;}
-    }
-  
-    /* Independent scrolling with spacing between On Break and Reminder. */
-    .side-panel.break-panel {
-      overflow:hidden !important;
-    }
-
-    .side-panel.break-panel .side-panel-list {
-      overflow-y:auto !important;
-      min-height:0 !important;
-      touch-action:pan-y;
-      overscroll-behavior:contain;
-    }
-
-    .reminder-stack {
-      overflow-y:auto !important;
-      touch-action:pan-y;
-      overscroll-behavior:contain;
-    }
-
-  </style>
-  <link rel="icon" type="image/png" href="clock.png">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KS Internal DTR Kiosk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0714;
+    --bg2:#120a24;
+    --panel:rgba(24,14,46,0.55);
+    --panel-border:rgba(120,80,255,0.35);
+    --cyan:#2be8ff;
+    --magenta:#ff3fd0;
+    --purple:#9b5cff;
+    --orange:#ffb454;
+    --text:#f2f0ff;
+    --text-dim:#8d87b0;
+    --success:#4ade80;
+    --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% 10%, rgba(155,92,255,0.28), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 50% 105%, rgba(43,232,255,0.16), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Rajdhani',sans-serif;
+    position:relative;
+    overflow-x:hidden;
+  }
+  .grid-floor{
+    position:fixed; left:-10%; right:-10%; bottom:0; height:42vh;
+    background-image:
+      linear-gradient(rgba(120,60,255,.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,60,255,.4) 1px, transparent 1px);
+    background-size:56px 56px;
+    transform:perspective(480px) rotateX(62deg);
+    transform-origin:bottom;
+    -webkit-mask-image:linear-gradient(to top, black, transparent);
+    mask-image:linear-gradient(to top, black, transparent);
+    opacity:.55;
+    z-index:0;
+    pointer-events:none;
+  }
+  .demo-banner{
+    position:relative; z-index:2; text-align:center; font-family:'Share Tech Mono',monospace;
+    font-size:.75rem; letter-spacing:1px; color:var(--orange);
+    background:rgba(255,180,84,.08); border-bottom:1px solid rgba(255,180,84,.3);
+    padding:8px 12px;
+  }
+  .app{
+    position:relative; z-index:1;
+    display:grid; grid-template-columns:300px 1fr 320px; gap:22px;
+    max-width:1500px; margin:0 auto; padding:32px 24px 60px;
+    align-items:start;
+  }
+  @media (max-width:1050px){ .app{ grid-template-columns:1fr; } }
+
+  .panel{ background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px; backdrop-filter:blur(6px); }
+  .panel h2{ font-family:'Orbitron',sans-serif; font-size:.82rem; letter-spacing:2px; color:var(--cyan); margin:0 0 14px; }
+
+  .person-card{ display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px; background:rgba(255,255,255,0.03); margin-bottom:10px; }
+  .avatar{ width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.78rem; color:#0a0714; flex-shrink:0; }
+  .person-info{ min-width:0; flex:1; }
+  .person-name{ font-weight:600; font-size:.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .person-sub{ font-size:.64rem; letter-spacing:1px; color:var(--text-dim); text-transform:uppercase; margin-top:2px; }
+  .person-time{ font-family:'Share Tech Mono',monospace; color:var(--cyan); font-size:.78rem; flex-shrink:0; margin-left:8px; }
+
+  .badge{ display:inline-block; font-size:.58rem; padding:1px 7px; border-radius:20px; letter-spacing:.5px; margin-left:6px; vertical-align:middle; }
+  .badge-morning{ background:rgba(255,180,84,.15); color:var(--orange); border:1px solid rgba(255,180,84,.4); }
+  .badge-night{ background:rgba(155,92,255,.18); color:var(--purple); border:1px solid rgba(155,92,255,.45); }
+
+  .empty-state{ color:var(--text-dim); font-size:.78rem; text-align:center; padding:22px 4px; }
+
+  .kiosk{ text-align:center; }
+  .sys-status{ font-family:'Share Tech Mono',monospace; color:var(--cyan); font-size:.82rem; letter-spacing:2px; margin-bottom:10px; }
+  .title{ font-family:'Orbitron',sans-serif; font-size:2.3rem; font-weight:800; letter-spacing:1px;
+    background:linear-gradient(90deg,var(--orange),var(--magenta),var(--purple));
+    -webkit-background-clip:text; background-clip:text; color:transparent; margin:0 0 6px; }
+  .subtitle{ color:var(--text-dim); letter-spacing:3px; font-size:.72rem; margin:0 0 26px; }
+  .clock{ font-family:'Share Tech Mono',monospace; font-size:3rem; font-weight:700; letter-spacing:4px; margin-bottom:6px; }
+  .date{ color:var(--cyan); letter-spacing:2px; font-size:.82rem; margin-bottom:30px; }
+
+  .card{ border:1px solid rgba(43,232,255,.4); border-radius:16px; padding:28px; background:rgba(20,10,40,.5);
+    box-shadow:0 0 40px rgba(120,60,255,.15); max-width:460px; margin:0 auto; }
+  .card h3{ font-family:'Orbitron',sans-serif; font-size:1rem; letter-spacing:1px; margin:0 0 6px; text-align:left; }
+  .card p.hint{ color:var(--text-dim); font-size:.8rem; margin:0 0 18px; text-align:left; }
+
+  #codeInput{ width:100%; padding:14px; text-align:center; font-family:'Share Tech Mono',monospace; font-size:1.25rem;
+    letter-spacing:4px; background:#0c0818; border:1px solid rgba(255,63,208,.5); border-radius:10px; color:var(--magenta);
+    margin-bottom:16px; }
+  #codeInput::placeholder{ color:rgba(255,63,208,.4); }
+  #codeInput:focus{ outline:none; box-shadow:0 0 0 2px var(--magenta); }
+
+  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+  .keypad button{ padding:14px 0; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+    border-radius:10px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:1.05rem; cursor:pointer; transition:.15s; }
+  .keypad button:hover{ background:rgba(43,232,255,.15); border-color:var(--cyan); }
+  .keypad button.wide{ grid-column:span 1; }
+
+  .btn-line{ display:flex; gap:10px; }
+  .scan-btn, .go-btn, .ghost{ width:100%; padding:14px; border-radius:10px; font-family:'Orbitron',sans-serif;
+    font-size:.76rem; letter-spacing:1px; cursor:pointer; transition:.15s; border:1px solid transparent; }
+  .scan-btn{ background:transparent; border-color:var(--cyan); color:var(--cyan); }
+  .scan-btn:hover{ background:rgba(43,232,255,.12); }
+  .go-btn{ background:linear-gradient(90deg,var(--cyan),var(--purple)); color:#08061a; font-weight:700; }
+  .go-btn:hover{ filter:brightness(1.1); }
+  .ghost{ margin-top:16px; background:transparent; border-color:rgba(255,255,255,.15); color:var(--text-dim); }
+  .ghost:hover{ border-color:var(--text); color:var(--text); }
+
+  .error-msg{ margin-top:12px; color:var(--danger); font-size:.8rem; font-family:'Share Tech Mono',monospace; text-align:left; }
+  .toast{ margin-top:16px; font-family:'Share Tech Mono',monospace; font-size:.82rem; color:var(--success); text-align:left; }
+
+  .employee-row{ display:flex; align-items:center; gap:16px; margin-bottom:26px; text-align:left; }
+  .employee-row .avatar{ width:56px; height:56px; font-size:1.05rem; }
+  .emp-name{ font-family:'Orbitron',sans-serif; font-size:1.15rem; }
+  .emp-status{ color:var(--text-dim); letter-spacing:1px; font-size:.72rem; text-transform:uppercase; margin-top:4px; }
+
+  .actions{ display:flex; flex-direction:column; gap:12px; }
+  .action-btn{ padding:16px; border-radius:10px; font-family:'Orbitron',sans-serif; font-weight:700; letter-spacing:1px;
+    font-size:.85rem; cursor:pointer; border:1px solid transparent; transition:.15s; }
+  .btn-primary{ background:linear-gradient(90deg,var(--cyan),var(--purple)); color:#08061a; }
+  .btn-primary:hover{ filter:brightness(1.1); }
+  .btn-magenta{ background:transparent; border-color:var(--magenta); color:var(--magenta); }
+  .btn-magenta:hover{ background:rgba(255,63,208,.12); }
+  .btn-purple{ background:transparent; border-color:var(--purple); color:var(--purple); }
+  .btn-purple:hover{ background:rgba(155,92,255,.12); }
+  .btn-outline{ background:transparent; border-color:rgba(255,255,255,.2); color:var(--text-dim); }
+  .btn-outline:hover{ border-color:var(--text); color:var(--text); }
+  .btn-cyan{ background:linear-gradient(90deg,var(--cyan),#5ef2ff); color:#08061a; }
+  .btn-cyan:hover{ filter:brightness(1.1); }
+
+  .hidden{ display:none !important; }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(5,2,15,.88); display:flex; align-items:center;
+    justify-content:center; z-index:50; }
+  .modal{ background:var(--bg2); border:1px solid var(--cyan); border-radius:16px; padding:22px; max-width:380px;
+    width:90%; text-align:center; }
+  .modal video{ width:100%; border-radius:10px; margin-bottom:14px; background:#000; }
+  .modal p{ color:var(--text-dim); font-size:.8rem; margin-bottom:14px; }
+</style>
 </head>
 <body>
-<div class="vapor-bg"><div class="sun"></div><div class="grid-floor"></div></div>
-<div class="scanlines"></div>
 
-<div class="side-panel break-panel">
-  <div class="side-panel-title">On Break</div>
-  <div class="side-panel-list" id="breakList"></div>
+<div class="demo-banner hidden" id="demoBanner">
+  ⚠ DEMO MODE — running on in-memory sample data. Add your Supabase URL &amp; anon key at the top of the script to save real, persistent records. See supabase-schema.sql.
 </div>
 
-<div class="reminder-stack hidden" id="reminderStack"></div>
+<div class="grid-floor"></div>
 
-<div class="side-panel logs-panel">
-  <div class="side-panel-title">Logs History</div>
-  <div class="side-panel-list" id="logsList"></div>
-</div>
+<div class="app">
 
-<div class="wrap">
-  <div class="header"><h1>KS Internal DTR Kiosk</h1><p>Daily Time Record System</p></div>
-  <div class="clock" id="clk">--:--:--</div>
-  <div class="date-disp" id="dte"></div>
+  <!-- LEFT: ON BREAK -->
+  <aside class="panel">
+    <h2>ON BREAK</h2>
+    <div id="onBreakList"><div class="empty-state">No one is on break right now.</div></div>
+  </aside>
 
-  <div class="card" id="loadCard">
-    <p style="text-align:center;color:var(--muted)"><span class="spin">⏳</span> Loading employees from server...</p>
-  </div>
+  <!-- CENTER: KIOSK -->
+  <main class="kiosk">
+    <div class="sys-status">&gt; SYSTEM ONLINE &middot; <span id="shiftBadge">SHIFT</span></div>
+    <h1 class="title">KS INTERNAL DTR KIOSK</h1>
+    <p class="subtitle">DAILY TIME RECORD SYSTEM</p>
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="date" id="dateLine">&mdash;</div>
 
-  <div class="card hidden" id="inputCard">
-    <h3>Enter Employee Code</h3>
-    <p class="desc">Type your employee code or scan your QR badge.</p>
-    <input id="empIn" placeholder="e.g. 409" maxlength="20" autocomplete="off" autocapitalize="characters"/>
-    <button class="btn" id="scanBtn">📷 Scan QR Code</button>
-    <div id="reader" class="hidden"></div>
-    <button class="btn sec hidden" id="closeBtn">✕ Close Scanner</button>
-  </div>
-
-  <div class="card hidden" id="actCard">
-    <div class="emp-card">
-      <div class="emp-name" id="eName"></div>
-      <div class="emp-meta" id="eMeta"></div>
+    <!-- Entry card -->
+    <div class="card" id="entryCard">
+      <h3>ENTER EMPLOYEE CODE</h3>
+      <p class="hint">Type your employee code or scan your QR badge.</p>
+      <input id="codeInput" placeholder="e.g. 101" inputmode="numeric" autocomplete="off" />
+      <div class="keypad" id="keypad"></div>
+      <button class="scan-btn" id="scanBtn">&#128394; SCAN QR CODE</button>
+      <div class="error-msg hidden" id="entryError"></div>
     </div>
-    <div class="grid2">
-      <button class="abtn" data-a="arrival">🟢 Arrival</button>
-      <button class="abtn" data-a="breakStart">☕ Break Start</button>
-      <button class="abtn" data-a="shortBreakStart">⏱️ Short Break Start</button>
-      <button class="abtn" data-a="breakEnd">🔄 Break End</button>
-      <button class="abtn" data-a="shortBreakEnd">▶️ Short Break End</button>
-      <button class="abtn" data-a="departure">🚪 Departure</button>
-    </div>
-     <p class="note"></p>
-  </div>
 
-  <div class="toast" id="toast"></div>
+    <!-- Action card -->
+    <div class="card hidden" id="actionCard">
+      <div class="employee-row">
+        <div class="avatar" id="empAvatar">--</div>
+        <div>
+          <div class="emp-name" id="empName">Name</div>
+          <div class="emp-status" id="empStatus">STATUS</div>
+        </div>
+      </div>
+      <div class="actions" id="actionButtons"></div>
+      <div class="toast hidden" id="actionToast"></div>
+      <button class="ghost" id="backBtn">&lsaquo; Back</button>
+    </div>
+  </main>
+
+  <!-- RIGHT: LOGS HISTORY -->
+  <aside class="panel">
+    <h2>LOGS HISTORY</h2>
+    <div id="logsList"><div class="empty-state">No activity logged yet.</div></div>
+  </aside>
+
 </div>
 
+<!-- QR modal -->
+<div class="modal-overlay hidden" id="qrModal">
+  <div class="modal">
+    <video id="qrVideo" playsinline muted></video>
+    <p id="qrHint">Point your badge's QR code at the camera.</p>
+    <button class="ghost" id="qrCancel">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-  // ── YOUR APPS SCRIPT URL ─────────────────────────────────────────────────
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxJ3nk-_UMsHhxY8BHu2NQS_dCrnYJ2UF7yAhUoj8X5jtuQ2EdqFyolxvagdwGrvGOL/exec";
-  // ─────────────────────────────────────────────────────────────────────────
+/* ============================================================
+   CONFIG — paste your Supabase project details here.
+   Project Settings → API → Project URL / anon public key.
+   Until you do, the kiosk runs in DEMO MODE on sample data
+   that resets whenever the page reloads.
+   ============================================================ */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
 
-  let employees = [];
-  let currentEmp = null;
-  let scanner = null;
-  let isSending = false;
-  let todayRecords = {};
-  let previousRecords = {};
-  let todayDateStr = "";
-  let previousDateStr = "";
-  let recordsReady = false;
-  let syncInProgress = false;
-  let syncQueued = false;
-  let lastSheetSyncAt = 0;
-  let employeeStateRequestToken = 0;
-  let employeeLookupTimer = null;
-  const pendingWritesByCode = Object.create(null);
-  const dtrBroadcastChannel = ("BroadcastChannel" in window)
-    ? new BroadcastChannel("ks-dtr-live")
-    : null;
-  const QUICK_RESET_MS = 350;
-  const AUTO_REFRESH_MS = 60 * 1000; // refresh latest employee/DTR data every 1 minute
-  const MIN_BREAK_END_MINUTES = 12; // hide end buttons until break is at least 12 minutes
-  const REMINDER_BEFORE_SHIFT_END_MINUTES = 3 * 60;
-  const ARRIVAL_OPEN_BEFORE_START_MINUTES = 45;
-  const DEPARTURE_OPEN_BEFORE_END_MINUTES = 2 * 60;
-  const MULTI_BREAK_DEPARTMENTS = ["checker", "checkers", "packaging"];
+const USE_MOCK = SUPABASE_URL.includes("YOUR-PROJECT") || SUPABASE_ANON_KEY.includes("YOUR-ANON-KEY");
+if (USE_MOCK) document.getElementById("demoBanner").classList.remove("hidden");
 
-  function normalizeDeptText(value) {
-    return String(value || "").trim().toLowerCase();
-  }
+const sb = USE_MOCK ? null : window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  function isMultiBreakDepartment(emp) {
-    const department = normalizeDeptText(emp && emp.department);
-    return MULTI_BREAK_DEPARTMENTS.some(function(name) {
-      return department === name ||
-        department.indexOf(name + " ") === 0 ||
-        department.indexOf(" " + name) !== -1;
-    });
-  }
+/* ---------- Mock data (demo mode only) ---------- */
+const mockEmployees = [
+  { id: "1", code: "101", name: "Ederlino Betican" },
+  { id: "2", code: "102", name: "Zurabi Gomelauri" },
+  { id: "3", code: "103", name: "Ryan Ynion" },
+  { id: "4", code: "104", name: "Leoneric Madridano" },
+  { id: "5", code: "105", name: "Darwin Panis Villaruz" },
+];
+let mockLogs = [
+  { id: "seed1", employee_id: "1", employee_name: "Ederlino Betican", action: "BREAK_START", shift: "Morning",
+    logged_at: new Date(Date.now() - 25 * 60000).toISOString() }
+];
 
-  // Clock
-  function tick() {
-    const n = new Date();
-    document.getElementById("clk").textContent =
-      n.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
-    document.getElementById("dte").textContent =
-      n.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-  }
-  tick(); setInterval(tick,1000);
-
-  const fmt  = (d=new Date()) => d.toLocaleDateString("en-CA");
-  const fmtT = (d=new Date()) =>
-    d.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false});
-
-  function dateOffsetStr(baseDate, offsetDays) {
-    const d = new Date(baseDate || new Date());
-    d.setDate(d.getDate() + offsetDays);
-    return fmt(d);
-  }
-
-  const EMP_CACHE_KEY = "kioskdtr_employee_cache_v15";
-  const EMP_CACHE_MAX_AGE_MS = 15 * 1000; // keep break state fresh; employees still load fast from cache
-
-  function normalizeIsoDateValue(value) {
-    if (!value) return "";
-    const text = String(value).trim();
-    if (!text) return "";
-
-    // A plain sheet date is already the correct work date.
-    const plainIso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if (plainIso) {
-      return plainIso[1] + "-" + String(plainIso[2]).padStart(2,"0") + "-" + String(plainIso[3]).padStart(2,"0");
+/* ---------- Data layer: same interface for real Supabase or mock ---------- */
+const db = {
+  async getEmployeeByCode(code) {
+    if (USE_MOCK) return mockEmployees.find(e => e.code === code) || null;
+    const { data, error } = await sb.from("employees").select("*").eq("code", code).limit(1);
+    if (error) throw error;
+    return (data && data[0]) || null;
+  },
+  async getLastLog(employeeId) {
+    if (USE_MOCK) {
+      const rows = mockLogs.filter(l => l.employee_id === employeeId)
+        .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+      return rows[0] || null;
     }
-
-    const slash = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (slash) {
-      return slash[3] + "-" + String(slash[1]).padStart(2,"0") + "-" + String(slash[2]).padStart(2,"0");
+    const { data, error } = await sb.from("logs").select("*").eq("employee_id", employeeId)
+      .order("logged_at", { ascending: false }).limit(1);
+    if (error) throw error;
+    return (data && data[0]) || null;
+  },
+  async insertLog(entry) {
+    if (USE_MOCK) {
+      const row = { ...entry, id: "log_" + Math.random().toString(36).slice(2), logged_at: new Date().toISOString() };
+      mockLogs.push(row);
+      return row;
     }
-
-    // Google Apps Script may serialize a July 11 sheet date as
-    // 2026-07-10T20:00:00.000Z. Convert it using the kiosk's local timezone
-    // instead of taking the UTC YYYY-MM-DD prefix.
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return fmt(parsed);
-
-    const isoPrefix = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if (isoPrefix) {
-      return isoPrefix[1] + "-" + String(isoPrefix[2]).padStart(2,"0") + "-" + String(isoPrefix[3]).padStart(2,"0");
+    const { data, error } = await sb.from("logs").insert(entry).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async getRecentLogs(limit = 300) {
+    if (USE_MOCK) {
+      return [...mockLogs].sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at)).slice(0, limit);
     }
-    return "";
-  }
-
-  function normalizeRecordKey(key) {
-    return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  }
-
-  function getRecordField(rec, keys) {
-    if (!rec) return "";
-    const wanted = (keys || []).map(normalizeRecordKey);
-
-    // First try exact key names.
-    for (const key of keys || []) {
-      if (Object.prototype.hasOwnProperty.call(rec, key) && String(rec[key] ?? "").trim() !== "") {
-        return rec[key];
-      }
-    }
-
-    // Then try normalized column headers. This is important because Apps Script
-    // / Google Sheet rows may return headers like "Break Start", "Short Break
-    // End", "Employee Code", or "Last Action" instead of camelCase names.
-    const normalized = {};
-    Object.keys(rec).forEach(function(key) {
-      normalized[normalizeRecordKey(key)] = rec[key];
-    });
-
-    for (const key of wanted) {
-      if (Object.prototype.hasOwnProperty.call(normalized, key) && String(normalized[key] ?? "").trim() !== "") {
-        return normalized[key];
-      }
-    }
-
-    return "";
-  }
-
-  function normalizeTimeText(value) {
-    const text = String(value ?? "").trim();
-    if (!text) return "";
-
-    // Keep normal DTR time values like 23:54 or 00:56.
-    const plain = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-    if (plain) return String(plain[1]).padStart(2, "0") + ":" + plain[2];
-
-    // Support ISO/string timestamps if Apps Script returns a formatted date-time.
-    const embedded = text.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::\d{2})?/);
-    if (embedded) return String(embedded[1]).padStart(2, "0") + ":" + embedded[2];
-
-    return text;
-  }
-
-  function normalizeEmployeeName(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .replace(/\s+/g, " ");
-  }
-
-  function normalizeLastActionText(value) {
-    return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-  }
-
-  function localTimeFromTimestamp(value) {
-    if (!value) return "";
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleTimeString("en-US", {hour:"2-digit", minute:"2-digit", hour12:false});
-    }
-    return normalizeTimeText(value);
-  }
-
-  function enforceNightShiftLastActionState(rec, emp) {
-    const fixed = Object.assign({}, rec || {});
-    if (!isNightShiftEmployee(emp)) return fixed;
-
-    // Last Action is authoritative for an unfinished break. This protects the
-    // kiosk even when a DTR API row is partial, a time column is shifted, or
-    // the after-midnight row was returned separately from the work-date row.
-    const action = normalizeLastActionText(fixed.lastAction);
-    if (action === "shortbreakstart") {
-      if (!hasValue(fixed.shortBreakStart)) {
-        fixed.shortBreakStart = localTimeFromTimestamp(fixed.timestamp) || "OPEN";
-      }
-      fixed.shortBreakEnd = "";
-    } else if (action === "breakstart") {
-      if (!hasValue(fixed.breakStart)) {
-        fixed.breakStart = localTimeFromTimestamp(fixed.timestamp) || "OPEN";
-      }
-      fixed.breakEnd = "";
-    } else if (action === "shortbreakend" && !hasValue(fixed.shortBreakEnd)) {
-      fixed.shortBreakEnd = localTimeFromTimestamp(fixed.timestamp) || "RECORDED";
-    } else if (action === "breakend" && !hasValue(fixed.breakEnd)) {
-      fixed.breakEnd = localTimeFromTimestamp(fixed.timestamp) || "RECORDED";
-    }
-    return fixed;
-  }
-
-  function resolveRecordEmployeeCode(rec) {
-    const directCode = String(getRecordField(rec, [
-      "code", "employeeCode", "Employee Code", "EmployeeCode", "Employee ID", "ID"
-    ]) || "").trim().toUpperCase();
-    if (directCode) return directCode;
-
-    // Some getDtrRows responses contain Employee Name but no employee code.
-    // Resolve those rows against the Employees sheet so an open after-midnight
-    // Short Break Start is not discarded before the button logic runs.
-    const recordName = normalizeEmployeeName(getRecordField(rec, [
-      "employeeName", "Employee Name", "Employee", "name", "Name"
-    ]));
-    if (!recordName) return "";
-
-    const recordDepartment = normalizeEmployeeName(getRecordField(rec, ["department", "Department"]));
-    const recordPosition = normalizeEmployeeName(getRecordField(rec, ["position", "Position"]));
-
-    let matches = (employees || []).filter(function(emp) {
-      return normalizeEmployeeName(emp && emp.name) === recordName;
-    });
-
-    if (matches.length > 1 && recordDepartment) {
-      const departmentMatches = matches.filter(function(emp) {
-        return normalizeEmployeeName(emp && emp.department) === recordDepartment;
-      });
-      if (departmentMatches.length) matches = departmentMatches;
-    }
-
-    if (matches.length > 1 && recordPosition) {
-      const positionMatches = matches.filter(function(emp) {
-        return normalizeEmployeeName(emp && emp.position) === recordPosition;
-      });
-      if (positionMatches.length) matches = positionMatches;
-    }
-
-    return matches.length === 1 ? String(matches[0].code || "").trim().toUpperCase() : "";
-  }
-
-  function normalizeDtrRecord(rec, targetDate, markPreviousNight) {
-    if (!rec) return null;
-
-    const recDate = normalizeIsoDateValue(getRecordField(rec, [
-      "date", "Date", "workDate", "Work Date", "DTR Date"
-    ]));
-
-    // When Apps Script returns only the requested date, rec.date may be blank.
-    // When it returns many rows, use only the row matching the requested date.
-    if (recDate && targetDate && recDate !== targetDate) return null;
-
-    const codeKey = resolveRecordEmployeeCode(rec);
-    if (!codeKey) return null;
-
-    const copy = Object.assign({}, rec, {
-      code: codeKey,
-      employeeCode: codeKey,
-      employeeName: String(getRecordField(rec, ["employeeName", "Employee Name", "Employee", "name", "Name"]) || "").trim(),
-      date: recDate || targetDate,
-      workDate: getRecordField(rec, ["workDate", "Work Date"]) || recDate || targetDate,
-
-      arrival: normalizeTimeText(getRecordField(rec, ["arrival", "Arrival", "Arrived"])),
-      breakStart: normalizeTimeText(getRecordField(rec, ["breakStart", "Break Start", "Main Break Start"])),
-      shortBreakStart: normalizeTimeText(getRecordField(rec, ["shortBreakStart", "Short Break Start"])),
-      breakEnd: normalizeTimeText(getRecordField(rec, ["breakEnd", "Break End", "Main Break End"])),
-      shortBreakEnd: normalizeTimeText(getRecordField(rec, ["shortBreakEnd", "Short Break End"])),
-      departure: normalizeTimeText(getRecordField(rec, ["departure", "Departure", "Out"])),
-      lastAction: String(getRecordField(rec, ["lastAction", "Last Action"])).trim(),
-      timestamp: String(getRecordField(rec, ["timestamp", "Timestamp"])).trim()
-    });
-
-    if (markPreviousNight) copy.previousNight = true;
-    return copy;
-  }
-
-  function getRecordCode(rec) {
-    return String(getRecordField(rec, [
-      "code", "employeeCode", "Employee Code", "EmployeeCode", "Employee ID", "ID"
-    ]) || "").trim().toUpperCase();
-  }
-
-  function recordProgressScore(rec) {
-    if (!rec) return 0;
-    let score = 0;
-    if (hasValue(rec.arrival)) score += 2;
-    if (hasValue(rec.breakStart)) score += 10;
-    if (hasValue(rec.breakEnd)) score += 20;
-    if (hasValue(rec.shortBreakStart)) score += 30;
-    if (hasValue(rec.shortBreakEnd)) score += 40;
-    if (hasValue(rec.departure)) score += 50;
-    if (hasValue(rec.lastAction)) score += 1;
-    if (hasValue(rec.timestamp)) score += .5;
-    return score;
-  }
-
-  function mergeNormalizedDtrRecords(oldRec, newRec, markPreviousNight) {
-    if (!oldRec) return Object.assign({}, newRec);
-    if (!newRec) return Object.assign({}, oldRec);
-
-    // Merge non-empty action columns instead of selecting only one row.
-    // This supports both cumulative DTR rows and APIs that return one partial
-    // snapshot per action. Most importantly, Short Break Start survives even
-    // when another row has a higher general progress score.
-    const merged = Object.assign({}, oldRec);
-    const fields = [
-      "arrival", "breakStart", "shortBreakStart",
-      "breakEnd", "shortBreakEnd", "departure"
-    ];
-
-    fields.forEach(function(field) {
-      if (hasValue(newRec[field])) merged[field] = newRec[field];
-    });
-
-    if (hasValue(newRec.lastAction)) merged.lastAction = newRec.lastAction;
-    if (hasValue(newRec.timestamp)) merged.timestamp = newRec.timestamp;
-    if (hasValue(newRec.employeeName)) merged.employeeName = newRec.employeeName;
-
-    merged.code = newRec.code || oldRec.code;
-    merged.employeeCode = merged.code;
-    merged.date = newRec.date || oldRec.date;
-    merged.workDate = newRec.workDate || oldRec.workDate || merged.date;
-    if (markPreviousNight) merged.previousNight = true;
-    return merged;
-  }
-
-  function toRecordArray(records) {
-    if (Array.isArray(records)) return records;
-    if (!records || typeof records !== "object") return [];
-    return Object.keys(records).map(function(key) { return records[key]; }).filter(function(row) {
-      return row && typeof row === "object";
-    });
-  }
-
-  function extractDtrRows(result) {
-    if (Array.isArray(result)) return result;
-    if (!result || typeof result !== "object") return [];
-
-    const preferredKeys = ["rows", "data", "records", "dtrRows", "DTR", "values"];
-    for (const key of preferredKeys) {
-      if (Array.isArray(result[key])) return result[key];
-    }
-
-    // One-level nested fallback for Apps Script wrappers such as
-    // { success:true, result:{ rows:[...] } }.
-    for (const key of Object.keys(result)) {
-      const value = result[key];
-      if (value && typeof value === "object") {
-        for (const nestedKey of preferredKeys) {
-          if (Array.isArray(value[nestedKey])) return value[nestedKey];
-        }
-      }
-    }
-    return [];
-  }
-
-  function buildRecordMap(records, targetDate, markPreviousNight) {
-    const map = {};
-    toRecordArray(records).forEach(function(rawRec) {
-      const copy = normalizeDtrRecord(rawRec, targetDate, markPreviousNight);
-      if (!copy) return;
-
-      const codeKey = getRecordCode(copy);
-      if (!codeKey) return;
-
-      map[codeKey] = mergeNormalizedDtrRecords(map[codeKey], copy, markPreviousNight);
-    });
-    return map;
-  }
-
-  function applyEmployeeData(data) {
-    employees = data.employees || [];
-    recordsReady = data.recordsReady !== false;
-    todayDateStr = normalizeIsoDateValue(data.todayDate) || fmt();
-    previousDateStr = normalizeIsoDateValue(data.previousDate) || dateOffsetStr(new Date(), -1);
-
-    todayRecords = buildRecordMap(data.todayRecords || [], todayDateStr, false);
-    previousRecords = buildRecordMap(data.previousRecords || [], previousDateStr, true);
-
-    // A just-tapped action is kept locally until Apps Script confirms the write.
-    // This prevents an older background snapshot from showing Break End again.
-    Object.keys(pendingWritesByCode).forEach(function(codeKey) {
-      const pending = pendingWritesByCode[codeKey];
-      if (!pending || !pending.record) return;
-
-      if (pending.source === "previous") {
-        previousRecords[codeKey] = Object.assign(
-          {},
-          previousRecords[codeKey] || {},
-          pending.record,
-          { date: pending.date, workDate: pending.date, previousNight: true }
-        );
-      } else {
-        todayRecords[codeKey] = Object.assign(
-          {},
-          todayRecords[codeKey] || {},
-          pending.record,
-          { date: pending.date, workDate: pending.date }
-        );
-      }
-    });
-
-    const currentCode = document.getElementById("empIn")?.value.trim().toUpperCase();
-    if (currentCode) {
-      document.getElementById("empIn").dispatchEvent(new Event("input"));
-    }
-    updateReminderStack();
-  }
-
-  function saveEmployeeCache(data) {
-    try {
-      localStorage.setItem(EMP_CACHE_KEY, JSON.stringify({
-        date: fmt(),
-        todayDate: data.todayDate || todayDateStr || fmt(),
-        previousDate: data.previousDate || previousDateStr || dateOffsetStr(new Date(), -1),
-        savedAt: Date.now(),
-        employees: data.employees || [],
-        todayRecords: data.todayRecords || [],
-        previousRecords: data.previousRecords || []
-      }));
-    } catch (_) {}
-  }
-
-  function loadEmployeeCache() {
-    try {
-      const raw = localStorage.getItem(EMP_CACHE_KEY);
-      if (!raw) return false;
-      const cached = JSON.parse(raw);
-      if (!cached || cached.date !== fmt()) return false;
-
-      // Employees can be reused from cache for fast startup.
-      // Today records are used only when the cache is fresh, so yesterday-night
-      // break state will not control the new afternoon shift in the evening.
-      const freshRecords = (Date.now() - Number(cached.savedAt || 0)) <= EMP_CACHE_MAX_AGE_MS;
-      applyEmployeeData({
-        employees: cached.employees || [],
-        todayDate: cached.todayDate || fmt(),
-        previousDate: cached.previousDate || dateOffsetStr(new Date(), -1),
-        todayRecords: freshRecords ? (cached.todayRecords || []) : [],
-        previousRecords: freshRecords ? (cached.previousRecords || []) : [],
-        recordsReady: freshRecords
-      });
-      return employees.length > 0;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function jsonpRequest(params, timeoutMs) {
-    timeoutMs = Number(timeoutMs || 8000);
-
-    return new Promise(function(resolve, reject) {
-      const callbackName = "__kiosk_cb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-      const script = document.createElement("script");
-      let finished = false;
-
-      const timer = setTimeout(function() {
-        cleanup();
-        reject(new Error("Google Sheet request timed out."));
-      }, timeoutMs);
-
-      function cleanup() {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
-        if (script.parentNode) script.parentNode.removeChild(script);
-      }
-
-      window[callbackName] = function(data) {
-        cleanup();
-        resolve(data || {});
-      };
-
-      const query = new URLSearchParams(
-        Object.assign({}, params || {}, {
-          callback: callbackName,
-          _: Date.now() + "-" + Math.random().toString(36).slice(2)
-        })
-      );
-
-      script.onerror = function() {
-        cleanup();
-        reject(new Error("Could not connect to Google Sheet."));
-      };
-      script.src = SCRIPT_URL + "?" + query.toString();
-      document.body.appendChild(script);
-    });
-  }
-
-  async function fetchKioskSync(targetDate) {
-    const data = await jsonpRequest({
-      action: "getKioskSync",
-      date: targetDate
-    }, 8000);
-
-    if (!data || data.ok === false) {
-      throw new Error((data && data.error) || "Google Sheet sync returned no data.");
-    }
+    const { data, error } = await sb.from("logs").select("*").order("logged_at", { ascending: false }).limit(limit);
+    if (error) throw error;
     return data;
   }
+};
 
-  async function fetchEmployeesForDate(targetDate) {
-    return jsonpRequest({
-      action: "getEmployees",
-      date: targetDate
-    }, 8000);
-  }
+/* ---------- Helpers ---------- */
+const pad = n => n.toString().padStart(2, "0");
+const palette = ["#2be8ff", "#ff3fd0", "#9b5cff", "#ffb454", "#4ade80", "#f472b6", "#38bdf8"];
 
-  async function fetchDtrRows() {
-    return jsonpRequest({ action: "getDtrRows" }, 8000);
-  }
+function colorFor(name) {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) % palette.length;
+  return palette[h];
+}
+function initialsFor(name) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+}
+function getShift(date = new Date()) {
+  const h = date.getHours();
+  return (h >= 7 && h < 19) ? "Morning" : "Night";
+}
+function formatTime(iso) {
+  const d = new Date(iso);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function actionLabel(action) {
+  return ({
+    TIME_IN: "TIME IN", BREAK_START: "BREAK START", BREAK_END: "BREAK END",
+    SHORT_BREAK_START: "SHORT BREAK", SHORT_BREAK_IN: "SHORT BREAK IN", TIME_OUT: "TIME OUT"
+  })[action] || action;
+}
+function badgeHtml(shift) {
+  return `<span class="badge ${shift === "Morning" ? "badge-morning" : "badge-night"}">${shift === "Morning" ? "AM" : "PM"}</span>`;
+}
 
-  async function fetchEmployeeState(emp) {
-    if (!emp || !emp.code) return null;
-    return jsonpRequest({
-      action: "getEmployeeState",
-      code: emp.code,
-      date: fmt()
-    }, 6000);
-  }
+/* ---------- Clock ---------- */
+function tickClock() {
+  const now = new Date();
+  document.getElementById("clock").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  document.getElementById("dateLine").textContent =
+    now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" }).toUpperCase();
+  document.getElementById("shiftBadge").textContent = getShift(now).toUpperCase() + " SHIFT";
+}
+setInterval(tickClock, 1000);
+tickClock();
 
-  function announceDtrChange(emp, key, time) {
-    const message = {
-      ts: Date.now(),
-      code: emp && emp.code ? String(emp.code) : "",
-      action: key || "",
-      time: time || ""
-    };
-
-    try {
-      localStorage.setItem("ks_dtr_live_event", JSON.stringify(message));
-    } catch (_) {}
-
-    try {
-      if (dtrBroadcastChannel) dtrBroadcastChannel.postMessage(message);
-    } catch (_) {}
-  }
-
-  function employeeStateContainsAction(data, emp, key, expectedTime, workDate) {
-    if (!data || data.ok === false) return false;
-
-    const fieldKeys = {
-      arrival: ["arrival", "Arrival"],
-      breakStart: ["breakStart", "Break Start"],
-      shortBreakStart: ["shortBreakStart", "Short Break Start"],
-      breakEnd: ["breakEnd", "Break End"],
-      shortBreakEnd: ["shortBreakEnd", "Short Break End"],
-      departure: ["departure", "Departure"]
-    };
-
-    const expected = normalizeTimeText(expectedTime);
-    const expectedAction = normalizeLastActionText(labels[key] || key);
-    const records = toRecordArray(data.todayRecords || []).concat(
-      toRecordArray(data.previousRecords || [])
-    );
-
-    return records.some(function(rec) {
-      const recordDate = normalizeIsoDateValue(getRecordField(rec, ["date", "Date", "workDate", "Work Date"]));
-      if (workDate && recordDate && recordDate !== workDate) return false;
-
-      const code = String(getRecordField(rec, ["code", "employeeCode", "Employee Code"]) || "").trim().toUpperCase();
-      if (code && emp && code !== String(emp.code || "").trim().toUpperCase()) return false;
-
-      const recordedTime = normalizeTimeText(getRecordField(rec, fieldKeys[key] || [key]));
-      if (recordedTime && expected && recordedTime === expected) return true;
-
-      const lastAction = normalizeLastActionText(getRecordField(rec, ["lastAction", "Last Action"]));
-      return lastAction === expectedAction && !!recordedTime;
-    });
-  }
-
-  function applyVerifiedEmployeeState(data, emp) {
-    if (!data || data.ok === false || !emp) return;
-    const codeKey = String(emp.code || "").trim().toUpperCase();
-    const today = normalizeIsoDateValue(data.todayDate) || fmt();
-    const previous = normalizeIsoDateValue(data.previousDate) || dateOffsetStr(new Date(), -1);
-    const todayMap = buildRecordMap(data.todayRecords || [], today, false);
-    const previousMap = buildRecordMap(data.previousRecords || [], previous, true);
-
-    todayDateStr = today;
-    previousDateStr = previous;
-    todayRecords[codeKey] = todayMap[codeKey] || {};
-    previousRecords[codeKey] = previousMap[codeKey] || {};
-    updateReminderStack();
-  }
-
-  async function verifyAttendanceSaved(emp, key, expectedTime, workDate) {
-    // A JSONP timeout does not always mean the write failed. Apps Script can
-    // finish the Sheet update after the browser timeout, especially on a cold
-    // start. Verify the actual employee row before showing an error.
-    for (let attempt = 0; attempt < 6; attempt++) {
-      try {
-        const data = await fetchEmployeeState(emp);
-        if (employeeStateContainsAction(data, emp, key, expectedTime, workDate)) {
-          applyVerifiedEmployeeState(data, emp);
-          return true;
-        }
-      } catch (_) {}
-
-      await new Promise(function(resolve) { setTimeout(resolve, 700); });
-    }
-    return false;
-  }
-
-  async function refreshEmployeeState(emp) {
-    if (!emp || !emp.code) return;
-    const codeKey = String(emp.code).trim().toUpperCase();
-
-    // The optimistic local state is newer than Google Sheet until the write is
-    // acknowledged, so do not replace it during this short period.
-    if (pendingWritesByCode[codeKey]) return;
-
-    const token = ++employeeStateRequestToken;
-    try {
-      const data = await fetchEmployeeState(emp);
-      if (token !== employeeStateRequestToken || !data || data.ok === false) return;
-      if (pendingWritesByCode[codeKey]) return;
-
-      const today = normalizeIsoDateValue(data.todayDate) || fmt();
-      const previous = normalizeIsoDateValue(data.previousDate) || dateOffsetStr(new Date(), -1);
-      const todayMap = buildRecordMap(data.todayRecords || [], today, false);
-      const previousMap = buildRecordMap(data.previousRecords || [], previous, true);
-
-      todayDateStr = today;
-      previousDateStr = previous;
-      todayRecords[codeKey] = todayMap[codeKey] || {};
-      previousRecords[codeKey] = previousMap[codeKey] || {};
-
-      const enteredCode = document.getElementById("empIn").value.trim().toUpperCase();
-      if (enteredCode === codeKey) {
-        const freshEmp = data.employee || emp;
-        showEmp(freshEmp);
-      }
-    } catch (err) {
-      console.warn("Employee live state refresh failed:", err);
-    }
-  }
-
-  function filterRowsByDate(rows, targetDate) {
-    return (rows || []).filter(function(row) {
-      return normalizeIsoDateValue(getRecordField(row, [
-        "date", "Date", "workDate", "Work Date", "DTR Date"
-      ])) === targetDate;
-    });
-  }
-
-  // ── Load employees from Google Sheets ─────────────────────────────────────
-  async function loadEmps(silent) {
-    // Only skip if URL is literally the placeholder text.
-    if (!SCRIPT_URL || SCRIPT_URL.trim() === "YOUR_APPS_SCRIPT_URL_HERE") {
-      toast("⚠ Script URL not configured","err");
-      show("loadCard",false); show("inputCard",true);
-      return;
-    }
-
-    // Prevent two refreshes from overwriting each other. If another refresh is
-    // requested while one is running, run it immediately after the first one.
-    if (syncInProgress) {
-      syncQueued = true;
-      return;
-    }
-    syncInProgress = true;
-
-    // Fast start: cache is used only to display the kiosk immediately.
-    // Every normal load and every 1-minute refresh still reads Google Sheet.
-    if (!silent) {
-      const hasCache = loadEmployeeCache();
-      show("loadCard",false);
-      show("inputCard",true);
-      document.getElementById("empIn").focus();
-
-      if (hasCache) {
-        toast("✓ Employees ready. Syncing live Google Sheet data...", "ok");
-        setTimeout(hideToast, 900);
-      } else {
-        toast("Syncing live Google Sheet data...", "warn");
-      }
-    }
-
-    try {
-      const today = fmt();
-      const previous = dateOffsetStr(new Date(), -1);
-      let merged = null;
-
-      // Preferred method: one Apps Script request returns employees plus the
-      // latest today/yesterday DTR rows from one locked Google Sheet snapshot.
-      try {
-        const live = await fetchKioskSync(today);
-        const allDtrRows = extractDtrRows(live.dtrRows || live.rows || []);
-        const todayRows = filterRowsByDate(allDtrRows, today);
-        const previousRows = filterRowsByDate(allDtrRows, previous);
-
-        merged = {
-          employees: live.employees || [],
-          todayDate: normalizeIsoDateValue(live.todayDate) || today,
-          previousDate: normalizeIsoDateValue(live.previousDate) || previous,
-          todayRecords: toRecordArray(live.todayRecords || []).concat(todayRows),
-          previousRecords: toRecordArray(live.previousRecords || []).concat(previousRows),
-          recordsReady: true
-        };
-      } catch (liveSyncError) {
-        // Backward-compatible fallback when the currently deployed Code.gs
-        // does not yet include getKioskSync.
-        console.warn("Single-request live sync failed; using legacy sync:", liveSyncError);
-
-        const d = await fetchEmployeesForDate(today);
-        let dPrev = { todayRecords: [] };
-        let allDtrRows = [];
-
-        try {
-          dPrev = await fetchEmployeesForDate(previous);
-        } catch(prevErr) {
-          console.warn("Previous shift record sync failed:", prevErr);
-        }
-
-        try {
-          const rowsResult = await fetchDtrRows();
-          allDtrRows = extractDtrRows(rowsResult);
-        } catch(rowsErr) {
-          console.warn("DTR rows sync failed; using getEmployees records only:", rowsErr);
-        }
-
-        const todayRows = filterRowsByDate(allDtrRows, today);
-        const previousRows = filterRowsByDate(allDtrRows, previous);
-
-        merged = {
-          employees: (d.employees && d.employees.length) ? d.employees : (dPrev.employees || []),
-          todayDate: today,
-          previousDate: previous,
-          todayRecords: toRecordArray(d.todayRecords || []).concat(todayRows),
-          previousRecords: toRecordArray(dPrev.todayRecords || []).concat(previousRows),
-          recordsReady: true
-        };
-      }
-
-      // Replace the kiosk state with the fresh Google Sheet snapshot.
-      // applyEmployeeData also re-checks the employee currently entered,
-      // so visible buttons change immediately after the 1-minute sync.
-      applyEmployeeData(merged);
-      saveEmployeeCache(merged);
-      lastSheetSyncAt = Date.now();
-
-      if (employees.length === 0) {
-        if (!silent) toast("No employees found. Add from Admin Panel first.","err");
-      } else if (!silent) {
-        toast("✓ Live Google Sheet data synced", "ok");
-        setTimeout(hideToast, 900);
-      }
-    } catch(e) {
-      recordsReady = employees.length > 0;
-      if (!silent && employees.length === 0) {
-        if (e.name === "AbortError") {
-          toast("⏱ Google Sheet sync timed out. Try refreshing.","err");
-        } else {
-          toast("⚠ Sync error: " + e.message,"err");
-        }
-      } else {
-        console.warn("Live Google Sheet sync failed:", e);
-      }
-    } finally {
-      syncInProgress = false;
-      if (syncQueued) {
-        syncQueued = false;
-        setTimeout(function() {
-          if (!isSending && Object.keys(pendingWritesByCode).length === 0) loadEmps(true);
-        }, 0);
-      }
-    }
-  }
-  loadEmps(false);
-
-  // Read the actual Google Sheet every 60 seconds. The cache is never used as
-  // the source for this refresh. Current employee buttons and reminders are
-  // recalculated from the newly downloaded DTR rows.
-  setInterval(function() {
-    if (!isSending && Object.keys(pendingWritesByCode).length === 0) loadEmps(true);
-  }, AUTO_REFRESH_MS);
-
-  // Also sync immediately when the kiosk returns online or the browser tab
-  // becomes active again, instead of waiting for the next one-minute cycle.
-  window.addEventListener("online", function() {
-    if (!isSending && Object.keys(pendingWritesByCode).length === 0) loadEmps(true);
+/* ---------- Keypad ---------- */
+const keypad = document.getElementById("keypad");
+const codeInput = document.getElementById("codeInput");
+["1","2","3","4","5","6","7","8","9","CLR","0","ENTER"].forEach(key => {
+  const btn = document.createElement("button");
+  btn.textContent = key === "CLR" ? "C" : (key === "ENTER" ? "&#9166;" : key);
+  btn.innerHTML = key === "CLR" ? "C" : (key === "ENTER" ? "&#9166;" : key);
+  btn.addEventListener("click", () => {
+    if (key === "CLR") codeInput.value = "";
+    else if (key === "ENTER") submitCode();
+    else codeInput.value += key;
+    codeInput.focus();
   });
+  keypad.appendChild(btn);
+});
+codeInput.addEventListener("keydown", e => { if (e.key === "Enter") submitCode(); });
 
-  document.addEventListener("visibilitychange", function() {
-    if (!document.hidden && !isSending && Object.keys(pendingWritesByCode).length === 0) loadEmps(true);
-  });
+/* ---------- State ---------- */
+let currentEmployee = null;
+let currentState = null; // NOT_TIMED_IN | WORKING | ON_BREAK | ON_SHORT_BREAK
 
-  // ── Live employee lookup ──────────────────────────────────────────────────
-  document.getElementById("empIn").addEventListener("input", function(e) {
-    const code = e.target.value.trim().toUpperCase();
-    const emp = employees.find(function(x){ return String(x.code).toUpperCase() === code; });
-
-    clearTimeout(employeeLookupTimer);
+async function submitCode() {
+  const code = codeInput.value.trim();
+  const errBox = document.getElementById("entryError");
+  errBox.classList.add("hidden");
+  if (!code) return;
+  try {
+    const emp = await db.getEmployeeByCode(code);
     if (!emp) {
-      employeeStateRequestToken++;
-      hideEmp();
+      errBox.textContent = `No employee found for code "${code}".`;
+      errBox.classList.remove("hidden");
       return;
     }
-
-    // Show the latest local state immediately; then verify this one employee
-    // directly from Google Sheet without waiting for the 1-minute full refresh.
-    showEmp(emp);
-    employeeLookupTimer = setTimeout(function() {
-      refreshEmployeeState(emp);
-    }, 60);
-  });
-
-  function isDepartureRecorded(rec) {
-    if (!rec) return false;
-    return !!String(rec.departure || "").trim() ||
-      String(rec.lastAction || "").trim().toLowerCase() === "departure";
+    currentEmployee = emp;
+    await loadEmployeeState();
+    showActionCard();
+  } catch (e) {
+    errBox.textContent = "Couldn't reach the database. Check your Supabase config.";
+    errBox.classList.remove("hidden");
+    console.error(e);
   }
-
-  function hasValue(value) {
-    return String(value || "").trim() !== "";
-  }
-
-  function hasRecordData(rec) {
-    if (!rec) return false;
-    return ["arrival", "breakStart", "shortBreakStart", "breakEnd", "shortBreakEnd", "departure", "lastAction"].some(function(key) {
-      return hasValue(rec[key]);
-    });
-  }
-
-  function isEarlyMorningShiftWindow(emp) {
-    if (!isNightShiftEmployee(emp)) return false;
-    const previousForSchedule = { date: previousDateStr || dateOffsetStr(new Date(), -1), previousNight: true, workDate: previousDateStr || dateOffsetStr(new Date(), -1) };
-    return currentMinutes() < getNightShiftEndMinutes(emp, previousForSchedule);
-  }
-
-  function hasOpenMainBreak(rec) {
-    return !!rec && hasValue(rec.breakStart) && !hasValue(rec.breakEnd);
-  }
-
-  function hasOpenShortBreak(rec) {
-    return !!rec && hasValue(rec.shortBreakStart) && !hasValue(rec.shortBreakEnd);
-  }
-
-  function recordHasCompletedAllAllowedBreaks(rec, emp) {
-    if (!rec) return false;
-    const shortAllowed = isShortBreakAllowed(emp, rec);
-    const mainDone = hasValue(rec.breakStart) && hasValue(rec.breakEnd);
-    const shortDone = hasValue(rec.shortBreakStart) && hasValue(rec.shortBreakEnd);
-    return mainDone && (!shortAllowed || shortDone);
-  }
-
-  function recordNeedsShortBreakStart(rec, emp) {
-    if (!rec) return false;
-    return isShortBreakAllowed(emp, rec) &&
-      hasValue(rec.breakStart) && hasValue(rec.breakEnd) &&
-      !hasValue(rec.shortBreakStart);
-  }
-
-  function chooseNightShiftRecord(emp, previousCandidate, todayCandidate) {
-    // Open breaks always win, so the correct End button can appear.
-    if (hasOpenMainBreak(previousCandidate) || hasOpenShortBreak(previousCandidate)) return previousCandidate;
-    if (hasOpenMainBreak(todayCandidate) || hasOpenShortBreak(todayCandidate)) return todayCandidate;
-
-    // If the previous work-date row already has all scheduled breaks completed,
-    // keep it closed until the next 7:00 PM shift. This fixes completed night-shift
-    // rows like: Break 23:54→00:56 and Short Break 04:50→05:44.
-    if (recordHasCompletedAllAllowedBreaks(previousCandidate, emp)) return previousCandidate;
-    if (recordHasCompletedAllAllowedBreaks(todayCandidate, emp)) return todayCandidate;
-
-    // If main break is complete and the employee is 12 hours, show Short Break Start.
-    if (recordNeedsShortBreakStart(previousCandidate, emp)) return previousCandidate;
-    if (recordNeedsShortBreakStart(todayCandidate, emp)) return todayCandidate;
-
-    if (hasRecordData(previousCandidate)) return previousCandidate;
-    if (hasRecordData(todayCandidate)) return todayCandidate;
-    return null;
-  }
-
-  function getActiveRecordState(emp) {
-    const codeKey = String((emp && emp.code) || "").toUpperCase();
-    const todayRec = enforceNightShiftLastActionState(todayRecords[codeKey] || {}, emp);
-    const previousRec = enforceNightShiftLastActionState(previousRecords[codeKey] || {}, emp);
-
-    // An unfinished night-shift break must always take priority before noon,
-    // even when the schedule parser or shift-end calculation is inconsistent.
-    // This guarantees that a 04:00–06:59 Short Break Start shows only
-    // Short Break End when the employee returns.
-    if (isNightShiftEmployee(emp) && currentMinutes() < (12 * 60)) {
-      const workDate = previousDateStr || dateOffsetStr(new Date(), -1);
-      if (hasOpenMainBreak(previousRec) || hasOpenShortBreak(previousRec)) {
-        return {
-          source: "previous",
-          date: workDate,
-          record: Object.assign({}, previousRec, { date: workDate, previousNight: true, workDate: workDate })
-        };
-      }
-      if (hasOpenMainBreak(todayRec) || hasOpenShortBreak(todayRec)) {
-        return {
-          source: "today",
-          date: workDate,
-          record: Object.assign({}, todayRec, { date: workDate, previousNight: true, workDate: workDate, calendarDate: todayDateStr || fmt() })
-        };
-      }
-    }
-
-    if (isNightShiftEmployee(emp) && isEarlyMorningShiftWindow(emp)) {
-      const workDate = previousDateStr || dateOffsetStr(new Date(), -1);
-
-      const previousCandidate = hasRecordData(previousRec)
-        ? Object.assign({}, previousRec, { date: workDate, previousNight: true, workDate: workDate })
-        : null;
-
-      // Some old rows were saved on the calendar date after midnight. During the
-      // active night shift window, treat those early-morning rows as part of the
-      // previous work date, so the button sequence still follows the Google Sheet data.
-      const todayCandidate = hasRecordData(todayRec)
-        ? Object.assign({}, todayRec, { date: workDate, previousNight: true, workDate: workDate, calendarDate: todayDateStr || fmt() })
-        : null;
-
-      const chosen = chooseNightShiftRecord(emp, previousCandidate, todayCandidate);
-      if (chosen) {
-        return {
-          source: chosen === previousCandidate ? "previous" : "today",
-          date: workDate,
-          record: chosen
-        };
-      }
-
-      return {
-        source: "previous",
-        date: workDate,
-        record: { code: codeKey, date: workDate, previousNight: true, workDate: workDate }
-      };
-    }
-
-    const today = todayDateStr || fmt();
-    return {
-      source: "today",
-      date: today,
-      record: Object.assign({}, todayRec, { date: today, workDate: today })
-    };
-  }
-
-  function saveActiveRecordState(emp, rec, state) {
-    const codeKey = String((emp && emp.code) || "").toUpperCase();
-    if (!codeKey) return;
-    if (state && state.source === "previous") {
-      previousRecords[codeKey] = Object.assign({}, rec, { date: state.date, previousNight: true, workDate: state.date });
-    } else {
-      todayRecords[codeKey] = Object.assign({}, rec, { date: state && state.date ? state.date : (todayDateStr || fmt()) });
-    }
-  }
-
-  function timeTextToMinutes(value) {
-    const text = String(value || "").trim();
-    if (!text) return null;
-    const match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-    if (!match) return null;
-    const h = Number(match[1]);
-    const m = Number(match[2]);
-    if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    return h * 60 + m;
-  }
-
-  function currentMinutes() {
-    const n = new Date();
-    return n.getHours() * 60 + n.getMinutes();
-  }
-
-  function currentMinutesInShiftWindow(emp, rec) {
-    const nowMins = currentMinutes();
-    if (isNightShiftEmployee(emp)) {
-      const start = getNightShiftStartMinutes();
-      return nowMins >= start ? nowMins : nowMins + (24 * 60);
-    }
-    return nowMins;
-  }
-
-  function shiftEndMinutesInWindow(emp, rec) {
-    if (isNightShiftEmployee(emp)) {
-      return getNightShiftEndMinutes(emp, rec) + (24 * 60);
-    }
-    return getMorningShiftEndMinutes(emp, rec);
-  }
-
-  function openBreakReminderAction(rec, emp) {
-    if (!rec || !emp || isDepartureRecorded(rec) || isDayOffScheduled(emp, rec)) return "";
-    const shortAllowed = isShortBreakAllowed(emp, rec);
-    if (hasValue(rec.breakStart) && !hasValue(rec.breakEnd)) return "Break End";
-    if (shortAllowed && hasValue(rec.shortBreakStart) && !hasValue(rec.shortBreakEnd)) return "Short Break End";
-    return "";
-  }
-
-  function shouldShowBreakReminder(rec, emp) {
-    const action = openBreakReminderAction(rec, emp);
-    if (!action) return false;
-    const nowInWindow = currentMinutesInShiftWindow(emp, rec);
-    const shiftEnd = shiftEndMinutesInWindow(emp, rec);
-    return nowInWindow >= (shiftEnd - REMINDER_BEFORE_SHIFT_END_MINUTES);
-  }
-
-
-  function syncBreakPanelOffset() {
-    const stack = document.getElementById("reminderStack");
-    const breakPanel = document.querySelector(".side-panel.break-panel");
-    if (!stack) return;
-
-    if (breakPanel) breakPanel.style.top = "88px";
-
-    const panelVisible =
-      breakPanel &&
-      getComputedStyle(breakPanel).display !== "none";
-
-    /*
-     * On smaller screens, keep the existing centered reminder above
-     * SYSTEM ONLINE because the side panels are hidden.
-     */
-    if (!panelVisible) {
-      stack.style.left = "50%";
-      stack.style.width = "";
-      stack.style.transform = "translateX(-50%)";
-
-      if (stack.classList.contains("hidden")) return;
-
-      const header = document.querySelector(".wrap .header");
-      if (!header) return;
-
-      const minimumTop = 88;
-      const gapAboveSystemOnline = 10;
-      const bottomLimit = Math.floor(
-        header.getBoundingClientRect().top - gapAboveSystemOnline
-      );
-      const maximumHeight = Math.max(
-        110,
-        Math.min(210, Math.floor(window.innerHeight * 0.22))
-      );
-      const requiredHeight = Math.min(
-        Math.max(62, stack.scrollHeight),
-        maximumHeight
-      );
-      const topPosition = Math.max(
-        minimumTop,
-        bottomLimit - requiredHeight
-      );
-
-      stack.style.top = topPosition + "px";
-      stack.style.maxHeight =
-        Math.max(90, bottomLimit - topPosition) + "px";
-      return;
-    }
-
-    /*
-     * Desktop left column:
-     * On Break uses the upper section.
-     * Reminder uses the lower section.
-     * Both sections scroll independently with a clear gap between them.
-     */
-    const panelRect = breakPanel.getBoundingClientRect();
-    const gap = 24;
-    const bottomMargin = 24;
-    const minimumOnBreakHeight = 240;
-    const minimumReminderHeight = 150;
-    const availableBottom = window.innerHeight - bottomMargin;
-
-    let reminderTop = Math.max(
-      panelRect.top + minimumOnBreakHeight + gap,
-      Math.round(window.innerHeight * 0.53)
-    );
-
-    reminderTop = Math.min(
-      reminderTop,
-      availableBottom - minimumReminderHeight
-    );
-
-    const reminderHeight = Math.max(
-      minimumReminderHeight,
-      availableBottom - reminderTop
-    );
-
-    stack.style.left = panelRect.left + "px";
-    stack.style.width = panelRect.width + "px";
-    stack.style.top = reminderTop + "px";
-    stack.style.maxHeight = reminderHeight + "px";
-    stack.style.transform = "none";
-
-    /*
-     * End the On Break panel before Reminder begins. The On Break title
-     * remains fixed and only its name list scrolls.
-     */
-    breakPanel.style.bottom =
-      Math.max(
-        bottomMargin,
-        window.innerHeight - reminderTop + gap
-      ) + "px";
-  }
-
-  function reminderInitials(name) {
-    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
-
-  function reminderAvatarGradient(name) {
-    const colors = [
-      ["#FF00FF","#00FFFF"],
-      ["#FF9900","#FF00FF"],
-      ["#00FFFF","#7A5CFF"],
-      ["#FF3B6B","#FF9900"],
-      ["#7A5CFF","#00FFFF"],
-      ["#00FFB3","#00FFFF"]
-    ];
-    const text = String(name || "");
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-    }
-    const pair = colors[hash % colors.length];
-    return "linear-gradient(135deg," + pair[0] + "," + pair[1] + ")";
-  }
-
-  function updateReminderStack() {
-    const stack = document.getElementById("reminderStack");
-    if (!stack) return;
-
-    const reminders = [];
-    employees.forEach(function(emp) {
-      const activeState = getActiveRecordState(emp);
-      const rec = cleanStaleNightShiftEnds(activeState.record || {}, emp);
-      const action = openBreakReminderAction(rec, emp);
-      if (action && shouldShowBreakReminder(rec, emp)) {
-        reminders.push({ emp: emp, action: action });
-      }
-    });
-
-    if (!reminders.length) {
-      stack.classList.add("hidden");
-      stack.innerHTML = "";
-      requestAnimationFrame(syncBreakPanelOffset);
-      return;
-    }
-
-    stack.innerHTML = '<div class="reminder-title">Reminder</div>' +
-      reminders.map(function(item) {
-        const employeeName = item.emp.name || item.emp.code || "Employee";
-        return '<div class="log-item reminder-item">' +
-          '<div class="log-avatar" style="background:' + reminderAvatarGradient(employeeName) + '">' +
-            escapeHtml(reminderInitials(employeeName)) +
-          '</div>' +
-          '<div class="log-info">' +
-            '<div class="log-name">' + escapeHtml(employeeName) + '</div>' +
-            '<div class="log-action">Please tap ' + escapeHtml(item.action) + '</div>' +
-          '</div>' +
-        '</div>';
-      }).join("");
-    stack.classList.remove("hidden");
-    requestAnimationFrame(syncBreakPanelOffset);
-  }
-
-  window.addEventListener("resize", function() {
-    requestAnimationFrame(syncBreakPanelOffset);
-  });
-
-  window.addEventListener("load", function() {
-    requestAnimationFrame(syncBreakPanelOffset);
-  });
-
-  function escapeHtml(value) {
-    return String(value || "").replace(/[&<>"']/g, function(ch) {
-      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[ch];
-    });
-  }
-
-  function minutesSinceTime(startValue) {
-    const start = timeTextToMinutes(startValue);
-    if (start === null) return null;
-    let now = currentMinutes();
-    if (now < start) now += 24 * 60;
-    return now - start;
-  }
-
-  function isBreakEndTooSoon(startValue) {
-    const elapsed = minutesSinceTime(startValue);
-    return elapsed !== null && elapsed < MIN_BREAK_END_MINUTES;
-  }
-
-  function isEarlyMorningTime(value) {
-    const mins = timeTextToMinutes(value);
-    return mins !== null && mins <= (12 * 60);
-  }
-
-  function isEveningTime(value) {
-    const mins = timeTextToMinutes(value);
-    return mins !== null && mins >= (18 * 60);
-  }
-
-  function normalizeShiftText(value) {
-    return String(value || "").trim().toLowerCase();
-  }
-
-  function isNightShiftEmployee(emp) {
-    const shift = normalizeShiftText((emp && emp.shift) || "");
-    // Accept your existing values: Afternoon, Night, Night Shift, Evening, PM.
-    return /afternoon|night|evening|pm/.test(shift);
-  }
-
-  function isAfternoonEmployee(emp) {
-    return isNightShiftEmployee(emp);
-  }
-
-  function currentShiftDateForSchedule(emp, rec) {
-    if (rec && rec.workDate) return rec.workDate;
-    if (isNightShiftEmployee(emp) && currentMinutes() < (12 * 60)) {
-      return previousDateStr || dateOffsetStr(new Date(), -1);
-    }
-    if (rec && rec.date) return rec.date;
-    return fmt();
-  }
-
-  function dayAliasesFromIso(isoDate) {
-    const parts = String(isoDate || fmt()).split("-").map(Number);
-    const d = new Date(parts[0] || new Date().getFullYear(), (parts[1] || 1) - 1, parts[2] || new Date().getDate());
-    const days = [
-      ["SUN", "SU", "SUNDAY"],
-      ["MON", "M", "MONDAY"],
-      ["TUE", "T", "TUESDAY"],
-      ["WED", "W", "WEDNESDAY"],
-      ["THU", "TH", "THURSDAY"],
-      ["FRI", "F", "FRIDAY"],
-      ["SAT", "SA", "SATURDAY"]
-    ];
-    return days[d.getDay()];
-  }
-
-  function getScheduledHoursForDate(emp, isoDate) {
-    const schedule = String((emp && emp.schedule) || "").toUpperCase();
-    if (!schedule) return null;
-
-    const aliases = dayAliasesFromIso(isoDate || fmt());
-
-    // Day-specific schedule parser. Supports:
-    // M:8hrs, T:12hrs, W:8hrs, TH:12hrs, F:12hrs, SA:8hrs, SUN:OFF
-    const tokenRegex = /\b(MONDAY|MON|M|TUESDAY|TUE|T|WEDNESDAY|WED|W|THURSDAY|THU|TH|FRIDAY|FRI|F|SATURDAY|SAT|SA|SUNDAY|SUN|SU)\b\s*[:=\-]?\s*(12|8|0|OFF|DAY\s*OFF|REST\s*DAY|REST)\s*(?:HRS?|HOURS?)?/g;
-    let match;
-    let hasDayEntries = false;
-
-    while ((match = tokenRegex.exec(schedule)) !== null) {
-      hasDayEntries = true;
-      const day = String(match[1] || "").trim();
-      const value = String(match[2] || "").replace(/\s+/g, " ").trim();
-
-      if (aliases.includes(day)) {
-        if (/^(OFF|DAY OFF|REST|REST DAY|0)$/.test(value)) return 0;
-        return Number(value);
-      }
-    }
-
-    // Fallback for old/simple schedule text like "12 hours" or "8 hrs".
-    if (!hasDayEntries) {
-      const simple = schedule.match(/\b(12|8)\s*(?:HRS?|HOURS?)\b/);
-      if (simple) return Number(simple[1]);
-    }
-
-    // Schedule has working-day entries, but not this day = Day Off.
-    if (hasDayEntries) return 0;
-    return null;
-  }
-
-  function getScheduledHours(emp, rec) {
-    return getScheduledHoursForDate(emp, currentShiftDateForSchedule(emp, rec));
-  }
-
-  function isDayOffScheduled(emp, rec) {
-    return getScheduledHours(emp, rec) === 0;
-  }
-
-  function isShortBreakAllowed(emp, rec) {
-    const hours = getScheduledHours(emp, rec);
-    if (hours === 0) return false;
-    if (hours === 8) return false;
-    if (hours === 12) return true;
-    // If no schedule is saved, keep old behavior so existing employees still work.
-    return true;
-  }
-
-  function getNightShiftStartMinutes() {
-    // Afternoon/night shift starts at 7:00 PM.
-    // Before this time, do not show new break buttons after the previous shift is finished.
-    return 19 * 60;
-  }
-
-  function getNightShiftEndMinutes(emp, rec) {
-    // Schedule end for afternoon/night shift:
-    // 8 hours  = 7:00 PM to 4:00 AM
-    // 12 hours = 7:00 PM to 7:00 AM
-    const hours = getScheduledHours(emp, rec);
-    if (hours === 8) return 4 * 60;
-    if (hours === 12) return 7 * 60;
-    // If schedule is missing/unclear, use the safer 12-hour night-shift end.
-    return 7 * 60;
-  }
-
-  function getMorningShiftEndMinutes(emp, rec) {
-    // Morning shift schedule end:
-    // 8 hours  = 7:00 AM to 4:00 PM
-    // 12 hours = 7:00 AM to 7:00 PM
-    const hours = getScheduledHours(emp, rec);
-    if (hours === 12) return 19 * 60;
-    return 16 * 60;
-  }
-
-  function isMorningShiftDutyFinished(emp, rec) {
-    if (isNightShiftEmployee(emp)) return false;
-    if (isDayOffScheduled(emp, rec || {})) return false;
-    return currentMinutes() >= getMorningShiftEndMinutes(emp, rec || {});
-  }
-
-  function isNightShiftClosedUntilEvening(emp, rec, mainOpen, shortOpen, mainDone, shortDone, shortAllowed) {
-    if (!isNightShiftEmployee(emp)) return false;
-    if (mainOpen || shortOpen) return false;
-
-    const nowMins = currentMinutes();
-    const shiftEndMins = getNightShiftEndMinutes(emp, rec);
-    const shiftStartMins = getNightShiftStartMinutes();
-
-    // Previous-night record can continue only while the night-shift schedule is still active.
-    // Example 12-hour night shift: after 7:00 AM, do not show Short Break Start even if it was unused.
-    if (rec && rec.previousNight) {
-      // After 7:00 PM, a new afternoon/night shift has started.
-      // Completed previous-night rows must not keep the buttons closed.
-      if (nowMins >= shiftStartMins) return false;
-      if (nowMins >= shiftEndMins) return true;
-      const completedAllAllowedBreaks = mainDone && (!shortAllowed || shortDone);
-      return completedAllAllowedBreaks;
-    }
-
-    // For night/afternoon shift, allow break buttons only during the active shift window:
-    // 7:00 PM → 4:00 AM for 8 hrs, or 7:00 PM → 7:00 AM for 12 hrs.
-    // After the schedule finishes, keep buttons hidden until the next 7:00 PM shift starts.
-    return nowMins >= shiftEndMins && nowMins < shiftStartMins;
-  }
-
-  function isEveningNewShiftNow() {
-    return currentMinutes() >= getNightShiftStartMinutes();
-  }
-
-  function isAfterNightShiftResetTime() {
-    // After 7:00 AM, completed early-morning break records belong to the
-    // previous night shift and must not block today's new break choices.
-    return currentMinutes() >= (7 * 60);
-  }
-
-  function cleanStaleNightShiftEnds(rec, emp) {
-    const cleaned = Object.assign({}, rec || {});
-
-    if (!isAfternoonEmployee(emp)) return cleaned;
-
-    // If Apps Script sends a previous-night state, keep ONLY open breaks that
-    // still need an End button. Completed previous-night breaks must not make
-    // the kiosk say "Break records completed for today" on the new calendar day.
-    if (cleaned.previousNight) {
-      const isBeforeNoon = currentMinutes() <= (12 * 60);
-
-      // Before noon, continue the previous afternoon/night-shift row.
-      // Example: July 3 Break Start 23:30, Break End July 4 00:30,
-      // then Short Break Start July 4 04:30 must still belong to July 3.
-      // Keep completed main-break values so the kiosk can show Short Break Start next.
-      if (isBeforeNoon) {
-        return cleaned;
-      }
-
-      // After noon/evening, previous-night completed break records must not block
-      // the new shift. Keep only genuinely open breaks that still need an End button.
-      // If there is no open break, return a clean empty state so the new 7:00 PM
-      // afternoon shift can show Break Start / Short Break Start normally.
-      const open = {};
-      let hasOpenBreak = false;
-      if (hasValue(cleaned.breakStart) && !hasValue(cleaned.breakEnd)) {
-        open.code = cleaned.code || (emp && emp.code) || "";
-        open.previousNight = true;
-        open.breakStart = cleaned.breakStart;
-        hasOpenBreak = true;
-      }
-      if (hasValue(cleaned.shortBreakStart) && !hasValue(cleaned.shortBreakEnd)) {
-        open.code = cleaned.code || (emp && emp.code) || "";
-        open.previousNight = true;
-        open.shortBreakStart = cleaned.shortBreakStart;
-        hasOpenBreak = true;
-      }
-      return hasOpenBreak ? open : {};
-    }
-
-    // Afternoon/night-shift reset rule:
-    // When completed break pairs are recorded with early-morning times
-    // (example: Short Break Start 04:42, Short Break End 04:50), those belong
-    // to the previous night shift date. After 7:00 AM they must not block the
-    // employee from starting a new Break or Short Break for the new work date.
-    const shouldResetCompletedNightBreaks = isAfterNightShiftResetTime() || isEveningNewShiftNow();
-    if (shouldResetCompletedNightBreaks) {
-      const mainBreakCompletedEarly = isEarlyMorningTime(cleaned.breakStart) && isEarlyMorningTime(cleaned.breakEnd);
-      const shortBreakCompletedEarly = isEarlyMorningTime(cleaned.shortBreakStart) && isEarlyMorningTime(cleaned.shortBreakEnd);
-      const mainBreakCompletedCrossMidnight = isEveningTime(cleaned.breakStart) && isEarlyMorningTime(cleaned.breakEnd);
-      const shortBreakCompletedCrossMidnight = isEveningTime(cleaned.shortBreakStart) && isEarlyMorningTime(cleaned.shortBreakEnd);
-
-      if (mainBreakCompletedEarly || mainBreakCompletedCrossMidnight) {
-        cleaned.breakStart = "";
-        cleaned.breakEnd = "";
-      }
-      if (shortBreakCompletedEarly || shortBreakCompletedCrossMidnight) {
-        cleaned.shortBreakStart = "";
-        cleaned.shortBreakEnd = "";
-      }
-
-      // End-only values after midnight are old/stale and must not expose a completed state.
-      if (!hasValue(cleaned.breakStart) && isEarlyMorningTime(cleaned.breakEnd)) cleaned.breakEnd = "";
-      if (!hasValue(cleaned.shortBreakStart) && isEarlyMorningTime(cleaned.shortBreakEnd)) cleaned.shortBreakEnd = "";
-      if (isEarlyMorningTime(cleaned.departure)) cleaned.departure = "";
-    }
-
-    return cleaned;
-  }
-
-
-    function getSpecialDepartmentShiftStartMinutes(emp) {
-    return isNightShiftEmployee(emp) ? getNightShiftStartMinutes() : (7 * 60);
-  }
-
-  function isArrivalWindowOpenForSpecialDepartment(emp, rec) {
-    if (isDayOffScheduled(emp, rec || {})) return false;
-
-    const nowMins = currentMinutes();
-    const shiftStart = getSpecialDepartmentShiftStartMinutes(emp);
-    const arrivalOpen = shiftStart - ARRIVAL_OPEN_BEFORE_START_MINUTES;
-
-    if (isNightShiftEmployee(emp)) {
-      const shiftEnd = getNightShiftEndMinutes(emp, rec || {});
-      return nowMins >= arrivalOpen || nowMins < shiftEnd;
-    }
-
-    const shiftEnd = getMorningShiftEndMinutes(emp, rec || {});
-    return nowMins >= arrivalOpen && nowMins < shiftEnd;
-  }
-
-  function isShiftActiveForSpecialDepartment(emp, rec) {
-    const nowMins = currentMinutes();
-    const shiftStart = getSpecialDepartmentShiftStartMinutes(emp);
-
-    if (isNightShiftEmployee(emp)) {
-      const shiftEnd = getNightShiftEndMinutes(emp, rec || {});
-      return nowMins >= shiftStart || nowMins < shiftEnd;
-    }
-
-    return nowMins >= shiftStart &&
-      nowMins < getMorningShiftEndMinutes(emp, rec || {});
-  }
-
-  function isDepartureWindowOpen(emp, rec) {
-    const nowInWindow = currentMinutesInShiftWindow(emp, rec || {});
-    const shiftEnd = shiftEndMinutesInWindow(emp, rec || {});
-    return nowInWindow >= (shiftEnd - DEPARTURE_OPEN_BEFORE_END_MINUTES) &&
-      nowInWindow <= shiftEnd;
-  }
-
-  function getMultiBreakVisibleActions(rec, emp) {
-    rec = rec || {};
-
-    if (isDayOffScheduled(emp, rec) || isDepartureRecorded(rec)) return [];
-
-    const hasArrival = hasValue(rec.arrival);
-    const mainOpen = hasValue(rec.breakStart) && !hasValue(rec.breakEnd);
-
-    if (!hasArrival) {
-      return isArrivalWindowOpenForSpecialDepartment(emp, rec) ? ["arrival"] : [];
-    }
-
-    if (mainOpen) {
-      return isBreakEndTooSoon(rec.breakStart) ? [] : ["breakEnd"];
-    }
-
-    const actions = [];
-    if (isShiftActiveForSpecialDepartment(emp, rec)) actions.push("breakStart");
-    if (isDepartureWindowOpen(emp, rec)) actions.push("departure");
-    return actions;
-  }
-
-  function setVisibleActions(visibleKeys) {
-    visibleKeys = visibleKeys || [];
-    const visible = new Set(visibleKeys);
-    const grid = document.querySelector(".grid2");
-    if (grid) grid.classList.toggle("single-action", visibleKeys.length === 1);
-
-    document.querySelectorAll(".abtn").forEach(function(btn) {
-      const isVisible = visible.has(btn.dataset.a);
-      btn.classList.toggle("hidden-action", !isVisible);
-      if (!isVisible) btn.disabled = true;
-    });
-  }
-
-  function getNextVisibleActions(rec, emp) {
-    rec = rec || {};
-
-    if (isDayOffScheduled(emp, rec)) return [];
-
-    if (isMultiBreakDepartment(emp)) {
-      return getMultiBreakVisibleActions(rec, emp);
-    }
-
-    if (isMorningShiftDutyFinished(emp, rec)) return [];
-
-    // Afternoon/night shift safety rule: when Google Sheet says the latest
-    // action is a break start and its matching end is blank, never show either
-    // start button. Only the matching End button is allowed. This applies to
-    // both 8-hour and 12-hour afternoon duties.
-    if (isNightShiftEmployee(emp)) {
-      const latestAction = normalizeLastActionText(rec.lastAction);
-      if (latestAction === "shortbreakstart" && !hasValue(rec.shortBreakEnd)) {
-        const shortStartValue = hasValue(rec.shortBreakStart) ? rec.shortBreakStart : "";
-        return shortStartValue && isBreakEndTooSoon(shortStartValue) ? [] : ["shortBreakEnd"];
-      }
-      if (latestAction === "breakstart" && !hasValue(rec.breakEnd)) {
-        const mainStartValue = hasValue(rec.breakStart) ? rec.breakStart : "";
-        return mainStartValue && isBreakEndTooSoon(mainStartValue) ? [] : ["breakEnd"];
-      }
-    }
-
-    // Schedule is the source of truth:
-    // 8 hrs  = main break only
-    // 12 hrs = main break + short break
-    const scheduledHours = getScheduledHours(emp, rec);
-    const shortAllowed = scheduledHours === 12 || (scheduledHours === null && isShortBreakAllowed(emp, rec));
-
-    const hasBreakStart = hasValue(rec.breakStart);
-    const hasBreakEnd = hasValue(rec.breakEnd);
-    const hasShortStartRaw = hasValue(rec.shortBreakStart);
-    const hasShortEndRaw = hasValue(rec.shortBreakEnd);
-
-    // If an existing 8-hour row accidentally has an open short break, allow
-    // only Short Break End so the record can be closed. Do not allow a new
-    // Short Break Start on 8-hour schedules.
-    const shortStartedForClosing = hasShortStartRaw && !hasShortEndRaw;
-    const hasShortStart = shortAllowed ? hasShortStartRaw : shortStartedForClosing;
-    const hasShortEnd = shortAllowed ? hasShortEndRaw : false;
-
-    const mainOpen = hasBreakStart && !hasBreakEnd;
-    const shortOpen = hasShortStart && !hasShortEnd;
-    const mainDone = hasBreakStart && hasBreakEnd;
-    const shortDone = shortAllowed && hasShortStartRaw && hasShortEndRaw;
-
-    // End buttons must appear only when the matching start is already open
-    // and the break has reached the minimum 15-minute duration.
-    if (mainOpen) return isBreakEndTooSoon(rec.breakStart) ? [] : ["breakEnd"];
-    if (shortOpen) return isBreakEndTooSoon(rec.shortBreakStart) ? [] : ["shortBreakEnd"];
-
-    // Afternoon/night shift: after the schedule is finished, do not offer
-    // new break starts. While still inside the same shift window, continue
-    // using the Google Sheet row for that work date.
-    if (isNightShiftClosedUntilEvening(emp, rec, mainOpen, shortOpen, mainDone, shortDone, shortAllowed)) {
-      return [];
-    }
-
-    // No break has started yet.
-    if (!hasBreakStart && !hasShortStartRaw) {
-      const starts = ["breakStart"];
-      if (shortAllowed) starts.push("shortBreakStart");
-      return starts;
-    }
-
-    // Main break completed:
-    // - 12 hrs schedule: Short Break Start must show if it has not started yet.
-    // - 8 hrs schedule: no short break is available.
-    if (mainDone) {
-      if (shortAllowed && !hasShortStartRaw) return ["shortBreakStart"];
-      if (isMultiBreakDepartment(emp)) return ["breakStart"];
-      if (!shortAllowed || shortDone) return [];
-    }
-
-    // Short break completed first on a 12-hour schedule:
-    // Break Start must still be available if main break has not started.
-    if (shortDone && !hasBreakStart) return ["breakStart"];
-
-    const actions = [];
-    if (!hasBreakStart) actions.push("breakStart");
-    if (shortAllowed && !hasShortStartRaw) actions.push("shortBreakStart");
-    return actions;
-  }
-
-  function actionInstruction(rec, visibleKeys, emp) {
-    if (isMultiBreakDepartment(emp)) {
-      rec = rec || {};
-
-      if (isDepartureRecorded(rec)) return "Attendance completed for today.";
-
-      if (!visibleKeys.length) {
-        if (isDayOffScheduled(emp, rec)) return "Day off. Attendance buttons are not available.";
-        if (hasValue(rec.breakStart) && !hasValue(rec.breakEnd) && isBreakEndTooSoon(rec.breakStart)) {
-          return "Your Break is Started.";
-        }
-        if (!hasValue(rec.arrival)) return "Arrival is available 45 minutes before duty starts.";
-        return "Duty schedule is finished. Attendance buttons are not available.";
-      }
-
-      if (visibleKeys.length === 1 && visibleKeys[0] === "arrival") return "Tap Arrival to start duty.";
-      if (visibleKeys.length === 1 && visibleKeys[0] === "breakEnd") return "Break Start recorded. Only Break End is available.";
-      if (visibleKeys.includes("departure") && visibleKeys.includes("breakStart")) {
-        return "You may start another break or tap Departure. Departure is available during the final 2 hours of duty.";
-      }
-      if (visibleKeys.length === 1 && visibleKeys[0] === "breakStart") {
-        return "Tap Break Start. Break Start and Break End can be used repeatedly.";
-      }
-      if (visibleKeys.length === 1 && visibleKeys[0] === "departure") return "Departure is now available.";
-    }
-
-    const scheduledHours = getScheduledHours(emp, rec || {});
-    const shortAllowed = scheduledHours === 12 || (scheduledHours === null && isShortBreakAllowed(emp, rec || {}));
-    const hasBreakStart = hasValue((rec || {}).breakStart);
-    const hasBreakEnd = hasValue((rec || {}).breakEnd);
-    const hasShortStart = shortAllowed && hasValue((rec || {}).shortBreakStart);
-    const hasShortEnd = shortAllowed && hasValue((rec || {}).shortBreakEnd);
-    const mainOpen = hasBreakStart && !hasBreakEnd;
-    const shortOpen = hasShortStart && !hasShortEnd;
-    const mainDone = hasBreakStart && hasBreakEnd;
-    const shortDone = hasShortStart && hasShortEnd;
-
-    if (!visibleKeys.length) {
-      if ((mainOpen && isBreakEndTooSoon((rec || {}).breakStart)) ||
-          (shortOpen && isBreakEndTooSoon((rec || {}).shortBreakStart))) {
-        return "Your Break is Started.";
-      }
-      if (isDayOffScheduled(emp, rec || {})) return "Day off. Break buttons are not available.";
-      if (isMorningShiftDutyFinished(emp, rec || {})) return "Duty schedule is finished. Break buttons are not available.";
-      if (isNightShiftEmployee(emp)) {
-        if (mainDone && (!shortAllowed || shortDone)) return "Break records completed. Next break is available when the next night shift starts.";
-        return "Duty schedule is finished. Next break is available when the next night shift starts.";
-      }
-      if (!shortAllowed && mainDone) return "Main break completed. Short break is only for 12-hour schedule.";
-      return "Break records completed for today.";
-    }
-    if (visibleKeys.length === 1 && visibleKeys[0] === "breakEnd") return "Break Start recorded. Only Break End is available.";
-    if (visibleKeys.length === 1 && visibleKeys[0] === "shortBreakEnd") return "Short Break Start recorded. Only Short Break End is available.";
-    if (visibleKeys.length === 1 && visibleKeys[0] === "shortBreakStart") return "Main break completed. Only Short Break Start is available.";
-    if (visibleKeys.length === 1 && visibleKeys[0] === "breakStart") return shortAllowed ? "Short break completed. Only Break Start is available." : "Select Break Start.";
-    return shortAllowed ? "Select Break Start or Short Break Start." : "Select Break Start.";
-  }
-
-  function showEmp(emp) {
-    currentEmp = emp;
-    document.getElementById("eName").textContent = emp.name;
-    document.getElementById("eMeta").textContent =
-      emp.code + " · " + (emp.department||"") + " · " + (emp.position||"");
-
-    const codeKey = String(emp.code).toUpperCase();
-const activeState = getActiveRecordState(emp);
-const rawRec = enforceNightShiftLastActionState(Object.assign({}, activeState.record || {}), emp);
-const rec = cleanStaleNightShiftEnds(rawRec, emp);
-// `rec` may be intentionally blanked here to hide a completed previous-night
-// break from the button logic below — that's fine for THIS render, but it must
-// never be persisted, or it permanently erases real break times from the
-// shared cache that Logs History and On Break also read from.
-saveActiveRecordState(emp, rawRec, activeState);
-
-    if (!recordsReady) {
-      setVisibleActions([]);
-      const note = document.querySelector(".note");
-      if (note) note.textContent = "Syncing latest DTR records. Please wait.";
-      show("actCard", true);
-      toast("Syncing latest DTR records. Please wait.", "warn");
-      return;
-    }
-
-    const departedTime = String(rec.departure || "").trim();
-    const alreadyDeparted = isDepartureRecorded(rec);
-    const visibleKeys = alreadyDeparted ? [] : getNextVisibleActions(rec, emp);
-    setVisibleActions(visibleKeys);
-
-    document.querySelectorAll(".abtn").forEach(function(btn) {
-      const actionKey = btn.dataset.a;
-      const allowRepeatBreakStart = (actionKey === "breakStart") && isMultiBreakDepartment(emp);
-      btn.dataset.doneTime = (allowRepeatBreakStart ? "" : (rec[actionKey] || ""));
-      btn.classList.remove("locked");
-
-      if (alreadyDeparted) {
-        btn.disabled = true;
-        btn.classList.add("locked");
-        btn.dataset.doneTime = departedTime || "Departure";
-        btn.title = "Departure already recorded" + (departedTime ? " at " + departedTime : "") + ". Attendance is completed for today.";
-        return;
-      }
-
-      if (!visibleKeys.includes(actionKey)) {
-        btn.disabled = true;
-        return;
-      }
-
-      btn.disabled = false;
-      btn.title = "";
-    });
-
-    const note = document.querySelector(".note");
-    if (note) note.textContent = alreadyDeparted
-      ? "Attendance completed for today."
-      : actionInstruction(rec, visibleKeys, emp);
-
-    show("actCard",true);
-
-    updateReminderStack();
-
-    if (alreadyDeparted) {
-      toast("⚠️ " + emp.name + " already departed" + (departedTime ? " at " + departedTime : "") + ". Attendance completed for today.", "warn");
-    } else if (!visibleKeys.length) {
-      toast(actionInstruction(rec, visibleKeys, emp), isNightShiftEmployee(emp) ? "warn" : "ok");
-    } else {
-      hideToast();
-    }
-  }
-  function hideEmp() { currentEmp=null; show("actCard",false); updateReminderStack(); }
-
-  // ── Action buttons ────────────────────────────────────────────────────────
-  const labels = {
-    arrival:"Arrival",
-    breakStart:"Break Start",
-    shortBreakStart:"Short Break Start",
-    breakEnd:"Break End",
-    shortBreakEnd:"Short Break End",
-    departure:"Departure"
+}
+
+async function loadEmployeeState() {
+  const last = await db.getLastLog(currentEmployee.id);
+  if (!last || last.action === "TIME_OUT") currentState = "NOT_TIMED_IN";
+  else if (last.action === "BREAK_START") currentState = "ON_BREAK";
+  else if (last.action === "SHORT_BREAK_START") currentState = "ON_SHORT_BREAK";
+  else currentState = "WORKING"; // TIME_IN, BREAK_END, SHORT_BREAK_IN
+  renderActionCard();
+}
+
+function showActionCard() {
+  document.getElementById("entryCard").classList.add("hidden");
+  document.getElementById("actionCard").classList.remove("hidden");
+  document.getElementById("actionToast").classList.add("hidden");
+}
+function resetToEntry() {
+  currentEmployee = null;
+  currentState = null;
+  codeInput.value = "";
+  document.getElementById("entryError").classList.add("hidden");
+  document.getElementById("actionCard").classList.add("hidden");
+  document.getElementById("entryCard").classList.remove("hidden");
+}
+document.getElementById("backBtn").addEventListener("click", resetToEntry);
+
+function renderActionCard() {
+  const color = colorFor(currentEmployee.name);
+  const avatar = document.getElementById("empAvatar");
+  avatar.textContent = initialsFor(currentEmployee.name);
+  avatar.style.background = color;
+
+  document.getElementById("empName").textContent = currentEmployee.name;
+
+  const statusMap = {
+    NOT_TIMED_IN: "NOT TIMED IN", WORKING: "WORKING",
+    ON_BREAK: "ON BREAK", ON_SHORT_BREAK: "ON SHORT BREAK"
   };
-  const warnMsgs = {
-    arrival:         "⚠️ Arrival already recorded",
-    breakStart:      "⚠️ Break Start already recorded",
-    shortBreakStart: "⚠️ Short Break Start already recorded",
-    breakEnd:        "⚠️ Break End already recorded",
-    shortBreakEnd:   "⚠️ Short Break End already recorded",
-    departure:       "⚠️ Departure already recorded"
-  };
+  document.getElementById("empStatus").textContent = `${statusMap[currentState]} \u00b7 ${getShift().toUpperCase()} SHIFT`;
 
-  document.querySelectorAll(".abtn").forEach(function(b) {
-    b.addEventListener("click", function() {
-      if (isSending || b.disabled) return;
+  const container = document.getElementById("actionButtons");
+  container.innerHTML = "";
+  const buttons = [];
+  if (currentState === "NOT_TIMED_IN") buttons.push({ label: "TIME IN", action: "TIME_IN", cls: "btn-primary" });
+  if (currentState === "WORKING") {
+    buttons.push({ label: "BREAK START", action: "BREAK_START", cls: "btn-magenta" });
+    buttons.push({ label: "SHORT BREAK", action: "SHORT_BREAK_START", cls: "btn-purple" });
+    buttons.push({ label: "TIME OUT", action: "TIME_OUT", cls: "btn-outline" });
+  }
+  if (currentState === "ON_BREAK") buttons.push({ label: "BREAK END", action: "BREAK_END", cls: "btn-cyan" });
+  if (currentState === "ON_SHORT_BREAK") buttons.push({ label: "SHORT BREAK IN", action: "SHORT_BREAK_IN", cls: "btn-cyan" });
 
-     const activeState = getActiveRecordState(currentEmp);
-const rec = cleanStaleNightShiftEnds(activeState.record || {}, currentEmp);
-// Read-only check — do not persist this cleaned snapshot back to cache.
-if (isDepartureRecorded(rec)) {
-        lockDepartedEmployee(currentEmp, rec.departure || "");
-        return;
-      }
-
-      const allowRepeatBreakStart = (b.dataset.a === "breakStart") && isMultiBreakDepartment(currentEmp);
-      if (b.dataset.doneTime && !allowRepeatBreakStart) {
-        toast(warnMsgs[b.dataset.a] + " at " + b.dataset.doneTime, "warn");
-        return;
-      }
-      doAction(b.dataset.a);
-    });
+  buttons.forEach(b => {
+    const btn = document.createElement("button");
+    btn.className = "action-btn " + b.cls;
+    btn.textContent = b.label;
+    btn.addEventListener("click", () => doAction(b.action, b.label));
+    container.appendChild(btn);
   });
+}
 
-  function lockDepartedEmployee(emp, departedTime) {
-    setVisibleActions([]);
-    document.querySelectorAll(".abtn").forEach(function(btn) {
-      btn.disabled = true;
-      btn.classList.add("locked");
-      btn.dataset.doneTime = departedTime || "Departure";
-      btn.title = "Departure already recorded" + (departedTime ? " at " + departedTime : "") + ". Attendance is completed for today.";
-    });
-    if (emp) {
-      toast("⚠️ " + emp.name + " already departed" + (departedTime ? " at " + departedTime : "") + ". Attendance completed for today.", "warn");
-    }
+async function doAction(action, label) {
+  const shift = getShift();
+  try {
+    await db.insertLog({ employee_id: currentEmployee.id, employee_name: currentEmployee.name, action, shift });
+    const toast = document.getElementById("actionToast");
+    toast.textContent = `\u2713 ${label} logged for ${currentEmployee.name.split(" ")[0]} at ${formatTime(new Date().toISOString())}`;
+    toast.classList.remove("hidden");
+    await loadEmployeeState();
+    await refreshPanels();
+    setTimeout(resetToEntry, 1800);
+  } catch (e) {
+    console.error(e);
   }
+}
 
-  async function doAction(key) {
-    if (!currentEmp || isSending) return;
-    isSending = true;
-    const emp = currentEmp;
-    const now = new Date(), calendarDate=fmt(now), time=fmtT(now), ts=now.toISOString();
+/* ---------- Side panels ---------- */
+async function refreshPanels() {
+  let logs = [];
+  try { logs = await db.getRecentLogs(300); } catch (e) { console.error(e); return; }
 
-   const codeKey = String(emp.code).toUpperCase();
-const activeState = getActiveRecordState(emp);
-const workDate = activeState.date || calendarDate;
-// Build from the RAW record, not cleanStaleNightShiftEnds(): that helper can
-// return a blank object on purpose to hide a completed previous-night break
-// from button logic, and saving that blank object here would wipe out real
-// break history the moment a new action is taken.
-const activeRec = enforceNightShiftLastActionState(
-  Object.assign({}, activeState.record || {}), emp
-);
-
-if (isDayOffScheduled(emp, activeRec)) {
-      toast("⚠️ Day off. Break buttons are not available.", "warn");
-      isSending = false;
-      return;
-    }
-
-    if (isMultiBreakDepartment(emp)) {
-      if (key === "arrival") {
-        if (hasValue(activeRec.arrival)) {
-          toast("⚠️ Arrival already recorded at " + activeRec.arrival, "warn");
-          isSending = false;
-          return;
-        }
-        if (!isArrivalWindowOpenForSpecialDepartment(emp, activeRec)) {
-          toast("⚠️ Arrival is available only 45 minutes before duty starts.", "warn");
-          isSending = false;
-          return;
-        }
-      } else if (!hasValue(activeRec.arrival)) {
-        toast("⚠️ Please record Arrival first.", "warn");
-        isSending = false;
-        return;
-      }
-
-      if (key === "breakStart" && !isShiftActiveForSpecialDepartment(emp, activeRec)) {
-        toast("⚠️ Duty schedule is finished. Break Start is not available.", "warn");
-        isSending = false;
-        return;
-      }
-
-      if (key === "departure") {
-        if (hasValue(activeRec.breakStart) && !hasValue(activeRec.breakEnd)) {
-          toast("⚠️ Please tap Break End before Departure.", "warn");
-          isSending = false;
-          return;
-        }
-        if (!isDepartureWindowOpen(emp, activeRec)) {
-          toast("⚠️ Departure is available only during the final 2 hours of duty.", "warn");
-          isSending = false;
-          return;
-        }
-      }
-    } else if (isMorningShiftDutyFinished(emp, activeRec)) {
-      toast("⚠️ Duty schedule is finished. Break buttons are not available.", "warn");
-      isSending = false;
-      return;
-    }
-
-    if (key === "breakStart" && isMultiBreakDepartment(emp) &&
-        hasValue(activeRec.breakStart) && hasValue(activeRec.breakEnd)) {
-      // Starting a new cycle for Checkers/Packaging — clear the completed
-      // pair locally too so the kiosk doesn't flash "already recorded".
-      activeRec.breakStart = "";
-      activeRec.breakEnd = "";
-    }
-
-    activeRec[key] = time;
-    activeRec.lastAction = labels[key];
-    activeRec.timestamp = ts;
-    saveActiveRecordState(emp, activeRec, activeState);
-
-    // Protect this new state from an older background response until Apps
-    // Script confirms that Google Sheet has committed the action.
-    pendingWritesByCode[codeKey] = {
-      source: activeState.source,
-      date: workDate,
-      record: Object.assign({}, activeRec)
-    };
-    const btn = document.querySelector(".abtn[data-a='" + key + "']");
-    if (btn) btn.dataset.doneTime = time;
-
-    const updatedVisibleKeys = getNextVisibleActions(activeRec, emp);
-    setVisibleActions(updatedVisibleKeys);
-    const note = document.querySelector(".note");
-    if (note) note.textContent = actionInstruction(activeRec, updatedVisibleKeys, emp);
-    updateReminderStack();
-
-    const payload = {
-      type:"attendance", date:workDate, timestamp:ts,
-      employeeCode:emp.code, employeeName:emp.name,
-      department:emp.department||"", position:emp.position||"",
-      lastAction:labels[key], source:"qr-kiosk"
-    };
-    if (key==="arrival")         payload.arrival         = time;
-    if (key==="breakStart")      payload.breakStart      = time;
-    if (key==="shortBreakStart") payload.shortBreakStart = time;
-    if (key==="breakEnd")        payload.breakEnd        = time;
-    if (key==="shortBreakEnd")   payload.shortBreakEnd   = time;
-    if (key==="departure")       payload.departure       = time;
-
-    toast("✅ " + emp.name + " — " + labels[key] + " at " + time, "ok");
-
-    // Clear the kiosk immediately, but wait for the real Apps Script response
-    // in the background. The local action state stays authoritative meanwhile.
-    sendToSheet(payload)
-      .then(function(result) {
-        if (!result || result.ok === false) {
-          throw new Error((result && result.error) || "Google Sheet did not confirm the action.");
-        }
-        delete pendingWritesByCode[codeKey];
-        announceDtrChange(emp, key, time);
-        return refreshEmployeeState(emp);
-      })
-      .catch(async function(err) {
-        console.warn("Attendance response was not confirmed; checking Google Sheet:", err);
-
-        const wasSaved = await verifyAttendanceSaved(emp, key, time, workDate);
-        delete pendingWritesByCode[codeKey];
-
-        if (wasSaved) {
-          announceDtrChange(emp, key, time);
-          return;
-        }
-
-        console.error("Attendance write failed after verification:", err);
-        toast("⚠ Action was not saved. Please try again.", "err");
-        setTimeout(hideToast, 3500);
-      });
-
-    if (key === "departure") {
-      lockDepartedEmployee(emp, time);
-    }
-
-    setTimeout(function() {
-      isSending = false;
-      document.getElementById("empIn").value = "";
-      hideEmp();
-      hideToast();
-      document.getElementById("empIn").focus();
-    }, QUICK_RESET_MS);
+  // Latest status per employee, to build the ON BREAK list
+  const latestByEmployee = new Map();
+  for (const l of logs) {
+    if (!latestByEmployee.has(l.employee_id)) latestByEmployee.set(l.employee_id, l);
   }
+  const onBreak = [...latestByEmployee.values()]
+    .filter(l => l.action === "BREAK_START" || l.action === "SHORT_BREAK_START")
+    .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
 
-  async function sendToSheet(payload) {
-    // JSONP returns only after Code.gs finishes the write and flushes the Sheet.
-    // Unlike no-cors POST, this gives the kiosk a real success/failure response.
-    return jsonpRequest({
-      data: JSON.stringify(payload)
-    }, 5000);
-  }
-
-  // ── QR Scanner ────────────────────────────────────────────────────────────
-  document.getElementById("scanBtn").addEventListener("click", startScan);
-  document.getElementById("closeBtn").addEventListener("click", stopScan);
-
-  let qrLibPromise = null;
-
-  function ensureQrLibrary() {
-    if (window.Html5Qrcode) return Promise.resolve();
-    if (qrLibPromise) return qrLibPromise;
-
-    qrLibPromise = new Promise(function(resolve, reject) {
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
-      s.async = true;
-      s.onload = resolve;
-      s.onerror = function() { reject(new Error("QR scanner library failed to load.")); };
-      document.head.appendChild(s);
-    });
-    return qrLibPromise;
-  }
-
-  async function startScan() {
-    show("reader",true); show("closeBtn",true); show("scanBtn",false);
-    try {
-      await ensureQrLibrary();
-    } catch(e) {
-      toast(e.message, "err");
-      stopScan();
-      return;
-    }
-
-    scanner = new Html5Qrcode("reader");
-    scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:220,height:220}},
-      function(txt) {
-        let code = txt.trim().toUpperCase();
-        try { const u=new URL(txt); const p=u.searchParams.get("employee"); if(p) code=p.toUpperCase(); } catch(_){}
-        document.getElementById("empIn").value = code;
-        document.getElementById("empIn").dispatchEvent(new Event("input"));
-        stopScan();
-      }, function(){}
-    ).catch(function(e){ toast("Camera error: "+e,"err"); stopScan(); });
-  }
-
-  function stopScan() {
-    if (scanner) scanner.stop().catch(function(){}).finally(function(){
-      scanner=null;
-      show("reader",false); show("closeBtn",false); show("scanBtn",true);
-      document.getElementById("reader").innerHTML="";
+  const onBreakList = document.getElementById("onBreakList");
+  onBreakList.innerHTML = "";
+  if (onBreak.length === 0) {
+    onBreakList.innerHTML = '<div class="empty-state">No one is on break right now.</div>';
+  } else {
+    onBreak.forEach(l => {
+      const color = colorFor(l.employee_name);
+      const statusText = l.action === "BREAK_START" ? "ON BREAK" : "ON SHORT BREAK";
+      onBreakList.insertAdjacentHTML("beforeend", `
+        <div class="person-card">
+          <div class="avatar" style="background:${color}">${initialsFor(l.employee_name)}</div>
+          <div class="person-info">
+            <div class="person-name">${l.employee_name}</div>
+            <div class="person-sub">${statusText}${badgeHtml(l.shift)}</div>
+          </div>
+          <div class="person-time">${formatTime(l.logged_at)}</div>
+        </div>
+      `);
     });
   }
 
-  function show(id,v){ document.getElementById(id).classList.toggle("hidden",!v); }
-  function toast(msg,type){ const e=document.getElementById("toast"); e.textContent=msg; e.className="toast show "+(type||""); }
-  function hideToast(){ document.getElementById("toast").classList.remove("show"); }
+  // Logs history (most recent first)
+  const logsList = document.getElementById("logsList");
+  logsList.innerHTML = "";
+  if (logs.length === 0) {
+    logsList.innerHTML = '<div class="empty-state">No activity logged yet.</div>';
+  } else {
+    logs.slice(0, 14).forEach(l => {
+      const color = colorFor(l.employee_name);
+      logsList.insertAdjacentHTML("beforeend", `
+        <div class="person-card">
+          <div class="avatar" style="background:${color}">${initialsFor(l.employee_name)}</div>
+          <div class="person-info">
+            <div class="person-name">${l.employee_name}</div>
+            <div class="person-sub">${actionLabel(l.action)}${badgeHtml(l.shift)}</div>
+          </div>
+          <div class="person-time">${formatTime(l.logged_at)}</div>
+        </div>
+      `);
+    });
+  }
+}
+refreshPanels();
+setInterval(refreshPanels, 8000);
 
-  // ══════════════════════════════════════════════════════════════════════
-  // Logs History + On Break side panels.
-  // Purely additive: nothing above this line is modified. This block only
-  // wraps toast() and updateReminderStack() from the outside so it can
-  // observe the same successful taps / state recalculations the kiosk
-  // already produces, without changing any existing logic or function body.
-  // ══════════════════════════════════════════════════════════════════════
-  (function() {
-    const MAX_LOG_ENTRIES = 60;
-    const AVATAR_COLOR_PAIRS = [
-      ["#FF00FF","#00FFFF"],
-      ["#FF9900","#FF00FF"],
-      ["#00FFFF","#7A5CFF"],
-      ["#FF3B6B","#FF9900"],
-      ["#7A5CFF","#00FFFF"],
-      ["#00FFB3","#00FFFF"]
-    ];
+/* ---------- QR scanning (jsQR + camera) ---------- */
+const qrModal = document.getElementById("qrModal");
+const qrVideo = document.getElementById("qrVideo");
+const qrHint = document.getElementById("qrHint");
+let qrStream = null, qrRAF = null;
+const qrCanvas = document.createElement("canvas");
+const qrCtx = qrCanvas.getContext("2d");
 
-    // Logs History is derived straight from the same todayRecords /
-    // previousRecords data the On Break panel already reads — this is the
-    // data the kiosk already has as soon as it syncs, and it is kept current
-    // by the same optimistic local update doAction() already performs before
-    // it calls updateReminderStack(). No new fetch, no new state is added.
-    const LOG_FIELDS = ["departure","shortBreakEnd","breakEnd","shortBreakStart","breakStart","arrival"];
+document.getElementById("scanBtn").addEventListener("click", startQrScan);
+document.getElementById("qrCancel").addEventListener("click", stopQrScan);
 
-    function buildDerivedLogs() {
-      const entries = [];
-
-      employees.forEach(function(emp) {
-        const codeKey = String(emp.code || "").toUpperCase();
-        [
-          { rec: todayRecords[codeKey], fallbackDate: todayDateStr || fmt() },
-          { rec: previousRecords[codeKey], fallbackDate: previousDateStr || dateOffsetStr(new Date(), -1) }
-        ].forEach(function(entry) {
-          const rec = entry.rec;
-          if (!rec) return;
-          const baseDate = rec.workDate || rec.date || entry.fallbackDate;
-
-          LOG_FIELDS.forEach(function(field) {
-            const value = rec[field];
-            if (!hasValue(value)) return;
-            const mins = timeTextToMinutes(value);
-            const sortTime = mins !== null
-              ? String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0")
-              : "00:00";
-            entries.push({
-              name: emp.name,
-              action: labels[field] || field,
-              time: value,
-              sortKey: baseDate + "T" + sortTime
-            });
-          });
-        });
-      });
-
-      entries.sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
-      return entries.slice(0, MAX_LOG_ENTRIES);
+async function startQrScan() {
+  qrModal.classList.remove("hidden");
+  qrHint.textContent = "Point your badge's QR code at the camera.";
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    qrVideo.srcObject = qrStream;
+    await qrVideo.play();
+    qrRAF = requestAnimationFrame(scanFrame);
+  } catch (e) {
+    qrHint.textContent = "Camera unavailable — please type your code instead.";
+    console.error(e);
+  }
+}
+function stopQrScan() {
+  if (qrRAF) cancelAnimationFrame(qrRAF);
+  if (qrStream) qrStream.getTracks().forEach(t => t.stop());
+  qrStream = null;
+  qrModal.classList.add("hidden");
+}
+function scanFrame() {
+  if (!qrStream) return;
+  if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
+    qrCanvas.width = qrVideo.videoWidth;
+    qrCanvas.height = qrVideo.videoHeight;
+    qrCtx.drawImage(qrVideo, 0, 0, qrCanvas.width, qrCanvas.height);
+    const imageData = qrCtx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+    const result = window.jsQR && window.jsQR(imageData.data, imageData.width, imageData.height);
+    if (result && result.data) {
+      codeInput.value = result.data.trim();
+      stopQrScan();
+      submitCode();
+      return;
     }
-
-    function initials(name) {
-      const t = String(name || "").trim();
-      if (!t) return "?";
-      const parts = t.split(/\s+/).filter(Boolean);
-      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-    }
-
-    function avatarGradient(name) {
-      const text = String(name || "");
-      let hash = 0;
-      for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-      const pair = AVATAR_COLOR_PAIRS[hash % AVATAR_COLOR_PAIRS.length];
-      return "linear-gradient(135deg," + pair[0] + "," + pair[1] + ")";
-    }
-
-    function renderLogs() {
-      const el = document.getElementById("logsList");
-      if (!el) return;
-      const logEntries = buildDerivedLogs();
-      if (!logEntries.length) {
-        el.innerHTML = '<div class="side-empty">No activity yet.</div>';
-        return;
-      }
-      el.innerHTML = logEntries.map(function(item) {
-        return '<div class="log-item">' +
-          '<div class="log-avatar" style="background:' + avatarGradient(item.name) + '">' + escapeHtml(initials(item.name)) + '</div>' +
-          '<div class="log-info">' +
-            '<div class="log-name">' + escapeHtml(item.name) + '</div>' +
-            '<div class="log-action">' + escapeHtml(item.action) + '</div>' +
-          '</div>' +
-          '<div class="log-time">' + escapeHtml(item.time) + '</div>' +
-        '</div>';
-      }).join("");
-    }
-
-    function renderOnBreak() {
-      const el = document.getElementById("breakList");
-      if (!el) return;
-
-      const onBreak = [];
-      employees.forEach(function(emp) {
-        const state = getActiveRecordState(emp);
-        const rec = cleanStaleNightShiftEnds(state.record || {}, emp);
-        if (hasOpenMainBreak(rec)) {
-          onBreak.push({ emp: emp, label: "On Break", time: rec.breakStart });
-        } else if (hasOpenShortBreak(rec)) {
-          onBreak.push({ emp: emp, label: "On Short Break", time: rec.shortBreakStart });
-        }
-      });
-
-      if (!onBreak.length) {
-        el.innerHTML = '<div class="side-empty">No one is on break.</div>';
-        return;
-      }
-
-      el.innerHTML = onBreak.map(function(item) {
-        return '<div class="log-item">' +
-          '<div class="log-avatar break" style="background:' + avatarGradient(item.emp.name) + '">' + escapeHtml(initials(item.emp.name)) + '</div>' +
-          '<div class="log-info">' +
-            '<div class="log-name">' + escapeHtml(item.emp.name) + '</div>' +
-            '<div class="log-action">' + escapeHtml(item.label) + '</div>' +
-          '</div>' +
-          '<div class="log-time">' + escapeHtml(item.time || "") + '</div>' +
-        '</div>';
-      }).join("");
-    }
-
-    // Wrap updateReminderStack() so the On Break panel refreshes at every
-    // point the kiosk already recalculates state (initial load, employee
-    // lookup, tapped actions, the 1-minute Google Sheet sync), without
-    // touching that function's own logic.
-    const _originalUpdateReminderStack = updateReminderStack;
-    updateReminderStack = function() {
-      _originalUpdateReminderStack();
-      renderOnBreak();
-      renderLogs();
-    };
-
-    renderLogs();
-    renderOnBreak();
-  })();
+  }
+  qrRAF = requestAnimationFrame(scanFrame);
+}
 </script>
 </body>
 </html>
